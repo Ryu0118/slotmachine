@@ -1,0 +1,241 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.1.0)'
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version format
+        run: |
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "error: version must be in semver format (e.g. 0.1.0)" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Check tag does not already exist
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/$VERSION$"; then
+            echo "error: tag $VERSION already exists" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+  build-macos:
+    needs: preflight
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26.2
+        run: sudo xcode-select --switch /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Bump Version.swift (build-time only)
+        run: |
+          sed -i '' "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
+            Sources/slotmachine/Version.swift
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Build Universal Binary
+        run: xcrun swift build -c release --arch arm64 --arch x86_64
+
+      - name: Create Archive
+        run: |
+          cd .build/apple/Products/Release
+          tar -czvf "slotmachine-${VERSION}-darwin-universal.tar.gz" slotmachine
+          shasum -a 256 "slotmachine-${VERSION}-darwin-universal.tar.gz" \
+            > "slotmachine-${VERSION}-darwin-universal.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: slotmachine-darwin-universal
+          path: |
+            .build/apple/Products/Release/slotmachine-${{ inputs.version }}-darwin-universal.tar.gz
+            .build/apple/Products/Release/slotmachine-${{ inputs.version }}-darwin-universal.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-macos
+          path: .build/apple/Products/Release/slotmachine
+          if-no-files-found: error
+
+  build-linux:
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Swift (setup-swift)
+        if: matrix.arch == 'x86_64'
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.2'
+
+      - name: Install Swift (manual arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update && sudo apt-get install -y binutils gnupg2 libc6-dev libcurl4-openssl-dev \
+            libedit2 libgcc-13-dev libncurses-dev libpython3-dev libsqlite3-dev libstdc++-13-dev \
+            libxml2-dev libz3-dev pkg-config tzdata unzip zlib1g-dev
+          SWIFT_URL="https://download.swift.org/swift-6.2.1-release/ubuntu2404-aarch64/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE-ubuntu24.04-aarch64.tar.gz"
+          curl -fsSL "$SWIFT_URL" -o /tmp/swift.tar.gz
+          sudo mkdir -p /opt/swift
+          sudo tar xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+          rm /tmp/swift.tar.gz
+
+      - name: Bump Version.swift (build-time only)
+        run: |
+          sed -i "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
+            Sources/slotmachine/Version.swift
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Build Linux Binary
+        run: swift build -c release --static-swift-stdlib
+
+      - name: Create Archive
+        run: |
+          cd .build/release
+          tar -czvf "slotmachine-${VERSION}-linux-${ARCH}.tar.gz" slotmachine
+          sha256sum "slotmachine-${VERSION}-linux-${ARCH}.tar.gz" \
+            > "slotmachine-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: slotmachine-linux-${{ matrix.arch }}
+          path: |
+            .build/release/slotmachine-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz
+            .build/release/slotmachine-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-linux-${{ matrix.arch }}
+          path: .build/release/slotmachine
+          if-no-files-found: error
+
+  create-release:
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all release archives
+        uses: actions/download-artifact@v6
+        with:
+          pattern: slotmachine-*
+          path: /tmp/release-assets
+          merge-multiple: true
+
+      - name: Download binaries for artifact bundle
+        uses: actions/download-artifact@v6
+        with:
+          name: binary-macos
+          path: /tmp/binaries/macos
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-x86_64
+          path: /tmp/binaries/linux-x86_64
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-arm64
+          path: /tmp/binaries/linux-arm64
+
+      - name: Create Artifact Bundle
+        run: |
+          BUNDLE="slotmachine.artifactbundle"
+
+          mkdir -p "$BUNDLE/slotmachine-macos/bin" \
+                   "$BUNDLE/slotmachine-linux-x86_64/bin" \
+                   "$BUNDLE/slotmachine-linux-arm64/bin"
+
+          cp /tmp/binaries/macos/slotmachine "$BUNDLE/slotmachine-macos/bin/slotmachine"
+          cp /tmp/binaries/linux-x86_64/slotmachine "$BUNDLE/slotmachine-linux-x86_64/bin/slotmachine"
+          cp /tmp/binaries/linux-arm64/slotmachine "$BUNDLE/slotmachine-linux-arm64/bin/slotmachine"
+          chmod +x "$BUNDLE/slotmachine-macos/bin/slotmachine" \
+                   "$BUNDLE/slotmachine-linux-x86_64/bin/slotmachine" \
+                   "$BUNDLE/slotmachine-linux-arm64/bin/slotmachine"
+
+          cat > "$BUNDLE/info.json" << INFOJSON
+          {
+            "schemaVersion": "1.0",
+            "artifacts": {
+              "slotmachine": {
+                "version": "${VERSION}",
+                "type": "executable",
+                "variants": [
+                  {
+                    "path": "slotmachine-macos/bin/slotmachine",
+                    "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
+                  },
+                  {
+                    "path": "slotmachine-linux-x86_64/bin/slotmachine",
+                    "supportedTriples": ["x86_64-unknown-linux-gnu"]
+                  },
+                  {
+                    "path": "slotmachine-linux-arm64/bin/slotmachine",
+                    "supportedTriples": ["aarch64-unknown-linux-gnu"]
+                  }
+                ]
+              }
+            }
+          }
+          INFOJSON
+
+          zip -r "slotmachine-${VERSION}.artifactbundle.zip" "$BUNDLE"
+          sha256sum "slotmachine-${VERSION}.artifactbundle.zip" \
+            > "slotmachine-${VERSION}.artifactbundle.zip.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Create GitHub Release with all assets
+        run: |
+          gh release create "$VERSION" \
+            /tmp/release-assets/* \
+            "slotmachine-${VERSION}.artifactbundle.zip" \
+            "slotmachine-${VERSION}.artifactbundle.zip.sha256" \
+            --title "$VERSION" \
+            --generate-notes
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
