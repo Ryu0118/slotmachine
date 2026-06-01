@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.7.1"),
-        .package(path: "../SlotKit"),
+        .package(url: "https://github.com/Ryu0118/SlotKit", from: "0.2.0"),
     ],
     targets: [
         .executableTarget(
