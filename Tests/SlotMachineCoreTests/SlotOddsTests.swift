@@ -81,4 +81,25 @@ struct SlotOddsTests {
         let grid = SlotOdds.gridPlan(rows: 2, cols: 3, weights: Self.weights, seed: 7)
         #expect(grid == [[flat[0], flat[1]], [flat[2], flat[3]], [flat[4], flat[5]]])
     }
+
+    @Test(arguments: [0.1, 0.25, 0.5])
+    func weightedPoolHasTheJackpotAtRoughlyTheOdds(odds: Double) {
+        let length = 40
+        let pool = SlotOdds.weightedPool(symbolCount: 8, jackpotOdds: odds, length: length)
+        #expect(pool.count == length)
+        let jackpotFraction = Double(pool.count { $0 == 0 }) / Double(length)
+        #expect(abs(jackpotFraction - odds) < 0.05) // within rounding of the target
+    }
+
+    @Test
+    func weightedPoolContainsEverySymbol() {
+        let pool = SlotOdds.weightedPool(symbolCount: 8, jackpotOdds: 0.1, length: 40)
+        #expect(Set(pool) == Set(0 ..< 8))
+    }
+
+    @Test
+    func weightedPoolIndicesAreInRange() {
+        let pool = SlotOdds.weightedPool(symbolCount: 8, jackpotOdds: 0.3, length: 40)
+        #expect(pool.allSatisfy { (0 ..< 8).contains($0) })
+    }
 }

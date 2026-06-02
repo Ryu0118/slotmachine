@@ -24,6 +24,15 @@ enum SpinDriver {
         }
     }
 
+    /// Builds `count` skill-stop columns, each gated on its turn. A column carries no
+    /// predetermined symbol — its turn (a keypress) is the stop signal, and SlotKit lands it
+    /// on the face showing at that instant. The skill-stop, gated left to right.
+    static func skillColumns(count: Int, gate: ReelGate) -> [SkillReel] {
+        (0 ..< count).map { index in
+            SkillReel { await gate.awaitTurn(index) }
+        }
+    }
+
     /// Advances the gate once per keypress, releasing reels left to right. Returns when every
     /// reel has been released (so the caller can stop reading keys). Ignores which key — any
     /// press (Enter, Space, …) stops the next reel.

@@ -1,4 +1,5 @@
 import SlotKit
+import SlotMachineCore
 
 /// The slot machine's faces and look: eight symbols — a `7` (the jackpot), `BAR`, cherry,
 /// bell, plum, orange, grape, and diamond — the kind of spread a real slot machine carries.
@@ -10,19 +11,29 @@ import SlotKit
 enum SevenTheme {
     private static let cellWidth = 8
     private static let cellHeight = 5
+    /// The weighted spinning pool's length — long enough to render odds like 0.1 reasonably.
+    private static let poolLength = 40
 
     private static let faces = [seven, bar, cherry, bell, plum, orange, grape, diamond]
 
-    /// Builds the slot theme. Throws ``SlotThemeError`` only if the bundled art is malformed
-    /// (it isn't — ``symbol(_:)`` centers every row to the exact width), so callers can treat
-    /// this as non-failing.
-    static func make() throws -> SlotTheme {
-        try SlotTheme.make { draft in
+    /// Builds the slot theme. When `skillOdds` is given, the spinning pool is **weighted** so
+    /// the `7` scrolls by only about that fraction of the time — a skill stop then catches it
+    /// with that probability. Without it the pool is the eight faces evenly (for the auto path,
+    /// which draws its outcome up front). Throws ``SlotThemeError`` only on malformed art (it
+    /// isn't — ``symbol(_:)`` centers every row), so callers can treat this as non-failing.
+    static func make(skillOdds: Double? = nil) throws -> SlotTheme {
+        let spinningFaces: [SlotSymbol] = if let skillOdds {
+            SlotOdds.weightedPool(symbolCount: faces.count, jackpotOdds: skillOdds, length: poolLength)
+                .map { faces[$0] }
+        } else {
+            faces
+        }
+        return try SlotTheme.make { draft in
             draft.cellWidth = cellWidth
             draft.cellHeight = cellHeight
             draft.symbols = faces
             draft.jackpotIndex = 0
-            draft.spinning = faces
+            draft.spinning = spinningFaces
             // `win` / `lose` are unused by the symbol path but required by the validator.
             draft.win = seven
             draft.lose = bar

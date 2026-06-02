@@ -34,6 +34,33 @@ public enum SlotOdds {
         return (0 ..< cols).map { col in Array(flat[(col * rows) ..< (col * rows + rows)]) }
     }
 
+    /// Builds a spinning pool (a list of symbol indices to scroll through) where the jackpot
+    /// symbol (index 0) appears about `jackpotOdds` of the time and the other symbols share the
+    /// rest evenly. Stopping at a random instant then lands on the jackpot with probability
+    /// ≈ `jackpotOdds` — the skill-stop's odds live in the pool, not an up-front draw. The pool
+    /// is interleaved (not blocked) so the jackpot is spread across the spin, and contains every
+    /// symbol at least once.
+    public static func weightedPool(symbolCount: Int, jackpotOdds: Double, length: Int) -> [Int] {
+        guard symbolCount >= 2, length >= symbolCount else {
+            return Array(0 ..< max(symbolCount, 1))
+        }
+        let others = symbolCount - 1
+        let jackpots = max(1, min(length - others, Int((Double(length) * jackpotOdds).rounded())))
+        var pool: [Int] = []
+        var otherCursor = 0
+        for slot in 0 ..< length {
+            // A slot is a jackpot when it crosses one of `jackpots` evenly-spaced boundaries;
+            // the gaps cycle through the other symbols so every face appears.
+            if (slot * jackpots) / length != ((slot + 1) * jackpots) / length {
+                pool.append(0)
+            } else {
+                pool.append(1 + (otherCursor % others))
+                otherCursor += 1
+            }
+        }
+        return pool
+    }
+
     private static func draw(
         reels: Int,
         weights: [Double],
