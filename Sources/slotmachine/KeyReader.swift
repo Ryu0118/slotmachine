@@ -62,7 +62,9 @@ enum KeyReader {
         var original = termios()
         guard tcgetattr(STDIN_FILENO, &original) == 0 else { return nil }
         var raw = original
-        raw.c_lflag &= ~(UInt(ECHO) | UInt(ICANON))
+        // `c_lflag` is `tcflag_t`, which is UInt on Darwin but UInt32 on Glibc — use the
+        // platform's own type so the flag arithmetic compiles on both.
+        raw.c_lflag &= ~(tcflag_t(ECHO) | tcflag_t(ICANON))
         tcsetattr(STDIN_FILENO, TCSANOW, &raw)
         return original
     }
