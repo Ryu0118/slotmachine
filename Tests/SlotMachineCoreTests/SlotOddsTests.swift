@@ -58,4 +58,27 @@ struct SlotOddsTests {
     /// Hard-coded golden vector; see seededDrawIsStableAcrossRuns. Replace only if the draw
     /// math intentionally changes.
     private static let goldenSeed42 = [3, 2, 2, 3, 3, 1, 1]
+
+    @Test
+    func gridPlanReturnsColumnsOfRowCells() {
+        let grid = SlotOdds.gridPlan(rows: 3, cols: 4, weights: Self.weights, seed: 1)
+        #expect(grid.count == 4) // four columns
+        #expect(grid.allSatisfy { $0.count == 3 }) // each three cells
+    }
+
+    @Test
+    func gridPlanIsSeedReproducible() {
+        let first = SlotOdds.gridPlan(rows: 3, cols: 3, weights: Self.weights, seed: 42)
+        let second = SlotOdds.gridPlan(rows: 3, cols: 3, weights: Self.weights, seed: 42)
+        #expect(first == second)
+    }
+
+    @Test
+    func gridPlanColumnsAreThePlanSplitColumnMajor() {
+        // gridPlan draws cols*rows in one sequence and slices it column by column, so it must
+        // equal plan() over the same count, reshaped.
+        let flat = SlotOdds.plan(reels: 6, weights: Self.weights, seed: 7)
+        let grid = SlotOdds.gridPlan(rows: 2, cols: 3, weights: Self.weights, seed: 7)
+        #expect(grid == [[flat[0], flat[1]], [flat[2], flat[3]], [flat[4], flat[5]]])
+    }
 }
