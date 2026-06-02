@@ -79,11 +79,11 @@ enum SevenTheme {
     ])
 
     private static let bell = symbol([
-        "▄▄▄",
-        "▐███▌",
-        "▐███▌",
-        "█████",
-        "▀",
+        "▄▄",
+        "▟██▙",
+        "████",
+        "████",
+        "▀▀",
     ])
 
     private static let plum = symbol([
