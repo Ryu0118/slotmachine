@@ -26,6 +26,14 @@ public enum SlotOdds {
         return draw(reels: reels, weights: weights, using: &generator)
     }
 
+    /// Draws a `cols × rows` grid: one weighted index per cell, returned **column by column**
+    /// (each inner array is a column's `rows` cells, top to bottom). Like ``plan(reels:weights:seed:)``
+    /// the draw is up front and seedable, so `--seed` reproduces the whole grid exactly.
+    public static func gridPlan(rows: Int, cols: Int, weights: [Double], seed: UInt64?) -> [[Int]] {
+        let flat = plan(reels: rows * cols, weights: weights, seed: seed)
+        return (0 ..< cols).map { col in Array(flat[(col * rows) ..< (col * rows + rows)]) }
+    }
+
     private static func draw(
         reels: Int,
         weights: [Double],

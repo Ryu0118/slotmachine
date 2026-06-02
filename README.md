@@ -1,7 +1,8 @@
 # 🎰 slotmachine
 
-A terminal slot machine with real slot-machine odds. Spin 2–9 reels and chase the
-`7`s — built on [SlotKit](https://github.com/Ryu0118/SlotKit).
+A terminal slot machine with real slot-machine odds. Spin a row of reels — or a
+square grid that pays on rows and diagonals — and chase the `7`s. Built on
+[SlotKit](https://github.com/Ryu0118/SlotKit).
 
 ```
 ╔══════╗╔══════╗╔══════╗
@@ -28,36 +29,50 @@ swift build -c release
 ## Usage
 
 ```bash
-slotmachine                 # 3 reels, default odds
+slotmachine                 # single row of 3 reels; press a key to stop each in turn
 slotmachine -n 7            # 7 reels — chase 7777777
+slotmachine --grid 3        # a 3×3 machine that pays on rows AND diagonals
+slotmachine --grid 5        # a 5×5 machine (5 rows + 2 diagonals = 7 lines)
+slotmachine --auto          # press once, then the reels stop on their own
 slotmachine --odds 0.5      # easier: a 7 lands half the time
 slotmachine --seed 42       # reproducible spin
 slotmachine --silent        # no animation, print the result line only
 ```
 
+On a terminal the reels spin and you **stop them yourself**: press any key
+(Enter, Space, …) to stop the next reel (or column), left to right. With `--auto`,
+one keypress starts the spin and the reels stop one after another on their own.
+
+A single row (`--reels`) pays when every reel matches. A square grid (`--grid N`)
+pays along any of its `N` rows or two diagonals — line up the `7`s on any line for
+the jackpot. The eight faces are `7` (the jackpot), `BAR`, cherry, bell, plum,
+orange, grape, and diamond.
+
 | Flag | Meaning |
 |------|---------|
-| `-n`, `--reels` | Number of reels, 2–9 (default 3) |
-| `--odds` | Per-reel chance of a `7`, in `(0, 1]` (default `0.1`) |
+| `-n`, `--reels` | Reels in a single-row machine, 1–10 (default 3) |
+| `--grid` | Play a square N×N machine, 3–9 (rows + diagonals) |
+| `--odds` | Per-cell chance of a `7`, in `(0, 1]` (default `0.1`) |
+| `--auto` | Press once to spin; reels then stop on their own |
 | `--seed` | Seed for a reproducible spin |
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
 
-The jackpot (all `7`s) has probability `odds^reels`, so high reel counts get rare
-fast — at the default odds, nine `7`s is about 1 in a billion. That's a real slot
-machine; it's meant to almost never line up. Lower the odds bar with `--odds`.
+A full line of `7`s has probability `odds^length`, so longer lines and bigger grids
+get rare fast — at the default odds, nine `7`s is about 1 in a billion. That's a
+real slot machine; it's meant to almost never line up. Lower the bar with `--odds`.
 
-## Terminal width
+## Terminal size
 
-The animated grid needs `(reel_width + 2) × reels` columns — about 72 for 9 reels.
-On a narrower terminal `slotmachine` automatically falls back to the plain result
-line so the animation never wraps and tears.
+The animated grid needs `(cell_width + 2) × columns` columns and a matching number
+of rows. When the terminal is too small in either dimension, `slotmachine` falls
+back to the plain result line so the animation never wraps and tears.
 
 ## How the odds work
 
-The jackpot symbol (`7`) lands on each reel with probability `--odds`; the remaining
-probability is split evenly across the other faces. The draw is decided up front, so
-`--seed` reproduces a spin exactly — the animation only reveals what was already
+The jackpot symbol (`7`) lands on each cell with probability `--odds`; the remaining
+probability is split evenly across the other faces. The whole grid is drawn up front,
+so `--seed` reproduces a spin exactly — the animation only reveals what was already
 drawn.
 
 ## License
