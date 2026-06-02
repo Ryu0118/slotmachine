@@ -42,6 +42,10 @@ enum SevenTheme {
             // The gate (keypress / timer) controls when each reel stops, so no minimum spin —
             // otherwise a reel would keep spinning for minSpin after it is released.
             draft.minSpin = 0
+            // Reels scroll their faces vertically like a real machine (a face slides down the
+            // window) instead of swapping whole each frame. A face dwells `cellHeight` frames,
+            // so the spin also reads at a watchable speed.
+            draft.scrollSpin = true
             draft.finale = SlotTheme.SlotFinale(frames: 10, interval: 0.1)
             draft.bust = SlotTheme.SlotFinale(frames: 6, interval: 0.18)
         }

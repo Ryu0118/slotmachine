@@ -1,13 +1,13 @@
 {
-  "originHash" : "46ef31a0deb7161d34ae2fe4bbf4949b17fcf3e0b3fcd679c55c226463e0f677",
+  "originHash" : "e57aa718b8aad30b51c25452dec30db0727f2b919edc9455950e76551e250875",
   "pins" : [
     {
       "identity" : "slotkit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Ryu0118/SlotKit",
       "state" : {
-        "revision" : "66db615ee1360e63da61596e300be76dd59c454c",
-        "version" : "0.4.0"
+        "revision" : "c1a374644e3f66c2f2383c78c8594351b8c8db1b",
+        "version" : "0.5.0"
       }
     },
     {
