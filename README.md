@@ -40,9 +40,14 @@ slotmachine --seed 42       # reproducible spin
 slotmachine --silent        # no animation, print the result line only
 ```
 
-On a terminal the reels spin and you **stop them yourself**: press any key
-(Enter, Space, …) to stop the next reel (or column), left to right. With `--auto`,
-one keypress starts the spin and the reels stop one after another on their own.
+On a terminal you **stop the reels yourself** — a real skill stop. Press any key
+(Enter, Space, …) to stop the next reel (or column), left to right, and it lands on
+**whatever's spinning by at that instant**. A `7` only scrolls past about `--odds`
+of the time, so catching one is genuinely hard.
+
+With `--auto` the reels stop on their own — and because a fixed interval can't
+"aim", auto draws each outcome up front at the configured odds (so it still wins at
+the right rate instead of never).
 
 `--games N` plays `N` games in a row and ends with a **session stats** panel:
 games, wins and win rate, jackpots, your best streak, and total lines, with a
@@ -60,8 +65,8 @@ orange, grape, and diamond.
 | `-n`, `--reels` | Reels in a single-row machine, 1–10 (default 3) |
 | `--grid` | Play a square N×N machine, 3–9 (rows + diagonals) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
-| `--odds` | Per-cell chance of a `7`, in `(0, 1]` (default `0.1`) |
-| `--auto` | Press once to spin; reels then stop on their own |
+| `--odds` | Chance a `7` shows, 0–1 (default `0.1`). 'odds' = probability |
+| `--auto` | Stop the reels on a timer (drawn up front) instead of by hand |
 | `--seed` | Seed for a reproducible spin |
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
@@ -78,10 +83,16 @@ back to the plain result line so the animation never wraps and tears.
 
 ## How the odds work
 
-The jackpot symbol (`7`) lands on each cell with probability `--odds`; the remaining
-probability is split evenly across the other faces. The whole grid is drawn up front,
-so `--seed` reproduces a spin exactly — the animation only reveals what was already
-drawn.
+`--odds` is the chance the `7` shows on a cell (it means *probability*, 0–1 — not an
+odd number).
+
+- **Hand stop** (the default): the reels scroll a weighted strip of faces in which the
+  `7` appears about `--odds` of the time. You stop on whatever's showing, so catching a
+  `7` is a matter of timing and luck — like a real machine. `--seed` doesn't make this
+  reproducible (your reflexes decide it).
+- **`--auto`**: the whole grid is drawn up front at `--odds`, then revealed on a timer —
+  a fixed interval can't aim, so drawing up front keeps the win rate honest. `--seed`
+  reproduces an auto session exactly.
 
 ## License
 
