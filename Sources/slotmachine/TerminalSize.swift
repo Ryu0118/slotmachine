@@ -22,13 +22,7 @@ enum TerminalSize {
 
     private static var windowSize: winsize? {
         var size = winsize()
-        // `ioctl`'s request argument is `UInt` on Darwin but `Int` on Glibc.
-        #if canImport(Glibc)
-            let request = Int(TIOCGWINSZ)
-        #else
-            let request = UInt(TIOCGWINSZ)
-        #endif
-        guard ioctl(STDOUT_FILENO, request, &size) == 0 else { return nil }
+        guard ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &size) == 0 else { return nil }
         return size
     }
 
