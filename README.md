@@ -1,7 +1,7 @@
 # 🎰 slotmachine
 
 A terminal slot machine with real slot-machine odds. Spin a row of reels — or a
-square grid that pays on rows and diagonals — and chase the `7`s. Built on
+3×3 grid that pays on rows and diagonals — and chase the `7`s. Built on
 [SlotKit](https://github.com/Ryu0118/SlotKit).
 
 ```
@@ -31,8 +31,7 @@ swift build -c release
 ```bash
 slotmachine                 # single row of 3 reels; press a key to stop each in turn
 slotmachine -n 7            # 7 reels — chase 7777777
-slotmachine --grid 3        # a 3×3 machine that pays on rows AND diagonals
-slotmachine --grid 5        # a 5×5 machine (5 rows + 2 diagonals = 7 lines)
+slotmachine --grid          # a 3×3 machine that pays on rows AND diagonals
 slotmachine --games 10      # play 10 games back to back, then session stats
 slotmachine --auto          # press once, then the reels stop on their own
 slotmachine --odds 0.5      # easier: a 7 lands half the time
@@ -55,15 +54,15 @@ win-rate bar that lights up. You still stop each game yourself by keypress — a
 `--auto` to let them run hands-free. With `--seed` the whole session is
 reproducible (each game still differs).
 
-A single row (`--reels`) pays when every reel matches. A square grid (`--grid N`)
-pays along any of its `N` rows or two diagonals — line up the `7`s on any line for
-the jackpot. The eight faces are `7` (the jackpot), `BAR`, cherry, bell, plum,
-orange, grape, and diamond.
+A single row (`--reels`) pays when every reel matches. The `--grid` board is a 3×3
+machine that pays along any of its three rows or two diagonals — line up the `7`s
+on any line for the jackpot. The eight faces are `7` (the jackpot), `BAR`, cherry,
+bell, plum, orange, grape, and diamond.
 
 | Flag | Meaning |
 |------|---------|
 | `-n`, `--reels` | Reels in a single-row machine, 1–10 (default 3) |
-| `--grid` | Play a square N×N machine, 3–9 (rows + diagonals) |
+| `--grid` | Play the 3×3 machine (rows + diagonals) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
 | `--odds` | Chance a `7` shows, 0–1 (default `0.1`). 'odds' = probability |
 | `--auto` | Stop the reels on a timer (drawn up front) instead of by hand |
@@ -71,8 +70,8 @@ orange, grape, and diamond.
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
 
-A full line of `7`s has probability `odds^length`, so longer lines and bigger grids
-get rare fast — at the default odds, nine `7`s is about 1 in a billion. That's a
+A full line of `7`s has probability `odds^length`, so longer lines get rare fast —
+at the default odds, nine `7`s (`--reels 9`) is about 1 in a billion. That's a
 real slot machine; it's meant to almost never line up. Lower the bar with `--odds`.
 
 ## Terminal size

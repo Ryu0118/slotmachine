@@ -8,8 +8,6 @@
 public enum GridConfigError: Error, Equatable, CustomStringConvertible {
     /// The reel count is outside the supported range for a single-row machine.
     case reelCountOutOfRange(Int)
-    /// The grid size is outside the supported range for a square machine.
-    case gridSizeOutOfRange(Int)
     /// The per-cell jackpot odds are not in the open-to-closed range (0, 1].
     case oddsOutOfRange(Double)
     /// The symbol count is too small to host a jackpot symbol plus at least one other.
@@ -21,9 +19,6 @@ public enum GridConfigError: Error, Equatable, CustomStringConvertible {
         case let .reelCountOutOfRange(reels):
             "reels must be between \(GridConfig.reelRange.lowerBound) and " +
                 "\(GridConfig.reelRange.upperBound) (got \(reels))"
-        case let .gridSizeOutOfRange(size):
-            "grid size must be between \(GridConfig.gridRange.lowerBound) and " +
-                "\(GridConfig.gridRange.upperBound) (got \(size))"
         case let .oddsOutOfRange(odds):
             "odds must be greater than 0 and at most 1 (got \(odds))"
         case let .tooFewSymbols(count):
@@ -35,13 +30,13 @@ public enum GridConfigError: Error, Equatable, CustomStringConvertible {
 /// A validated grid configuration: an `rows × cols` machine with per-symbol landing odds.
 ///
 /// A single-row machine is `rows == 1` with `cols` columns (the `--reels` mode); a square
-/// machine is `rows == cols == size` (the `--grid` mode). The jackpot symbol (index 0) lands
+/// machine is the fixed `3 × 3` board (the `--grid` mode). The jackpot symbol (index 0) lands
 /// with probability `odds`; the rest splits evenly across the other symbols.
 public struct GridConfig: Sendable, Equatable {
     /// The supported single-row reel-count range (`1...10`).
     public static let reelRange = 1 ... 10
-    /// The supported square-grid size range (`3...9`).
-    public static let gridRange = 3 ... 9
+    /// The side length of the square machine — fixed at `3` (3 rows + 2 diagonals).
+    public static let gridSize = 3
 
     /// Number of rows (1 for a single-row machine).
     public let rows: Int
@@ -58,10 +53,9 @@ public struct GridConfig: Sendable, Equatable {
         return try GridConfig(rows: 1, cols: reels, odds: odds, symbolCount: symbolCount)
     }
 
-    /// Builds a square `size × size` machine. Throws on a bad size / odds.
-    public static func square(size: Int, odds: Double, symbolCount: Int) throws -> GridConfig {
-        guard gridRange.contains(size) else { throw GridConfigError.gridSizeOutOfRange(size) }
-        return try GridConfig(rows: size, cols: size, odds: odds, symbolCount: symbolCount)
+    /// Builds the fixed `3 × 3` square machine. Throws only on bad odds.
+    public static func square(odds: Double, symbolCount: Int) throws -> GridConfig {
+        try GridConfig(rows: gridSize, cols: gridSize, odds: odds, symbolCount: symbolCount)
     }
 
     private init(rows: Int, cols: Int, odds: Double, symbolCount: Int) throws {

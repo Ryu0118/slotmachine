@@ -15,8 +15,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
     @Option(name: [.customShort("n"), .customLong("reels")], help: "Reels in a single-row machine (1…10).")
     var reels = 3
 
-    @Option(name: .customLong("grid"), help: "Play a square N×N machine that pays on rows and diagonals (3…9).")
-    var grid: Int?
+    @Flag(name: .customLong("grid"), help: "Play the 3×3 machine that pays on rows and diagonals.")
+    var grid = false
 
     @Option(
         name: .customLong("odds"),
@@ -158,8 +158,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
     }
 
     private func makeConfig(symbolCount: Int) throws -> GridConfig {
-        if let grid {
-            return try GridConfig.square(size: grid, odds: odds, symbolCount: symbolCount)
+        if grid {
+            return try GridConfig.square(odds: odds, symbolCount: symbolCount)
         }
         return try GridConfig.singleRow(reels: reels, odds: odds, symbolCount: symbolCount)
     }
