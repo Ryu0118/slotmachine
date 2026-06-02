@@ -27,30 +27,78 @@ struct SlotMachineCommand: AsyncParsableCommand {
     @Flag(name: .customLong("auto"), help: "Press once to spin; reels then stop on their own (ka-chunk, ka-chunk).")
     var auto = false
 
+    @Option(name: .customLong("games"), help: "How many games to play in a row; prints session stats at the end.")
+    var games = 1
+
     @Flag(name: [.customLong("silent"), .customLong("plain")], help: "Disable the animation; print the result only.")
     var silent = false
 
     mutating func run() async throws {
+        guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
         let theme = try SevenTheme.make()
         let config = try makeConfig(symbolCount: theme.symbols.count)
-        let drawn = SlotOdds.gridPlan(rows: config.rows, cols: config.cols, weights: config.weights, seed: seed)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
+        let animated = OutputMode.shouldAnimate(forcePlain: silent || !fits(config, theme: theme))
 
-        // One decision drives everything: a roomy interactive TTY animates, anything else
-        // (pipe, CI, NO_COLOR, --silent, too-small window) prints the plain verdict instead.
-        guard OutputMode.shouldAnimate(forcePlain: silent || !fits(config, theme: theme)) else {
-            let columns = SpinDriver.immediateGridColumns(drawn: drawn)
+        var stats = GameStats.empty
+        for game in 0 ..< games {
+            let result = await play(game: game, config: config, paylines: paylines, theme: theme, animated: animated)
+            stats = stats.recording(GameOutcome(
+                didWin: result.didWin,
+                isJackpot: result.isJackpot,
+                lineCount: result.winningLines.count,
+            ))
+        }
+        if games > 1 {
+            emit(StatsScreen.render(stats, color: animated))
+        }
+    }
+
+    /// Plays one game and returns its result. A single interactive game animates with the
+    /// keypress / auto stop; in a multi-game session every game auto-spins (no key per game)
+    /// and prints a one-line verdict, so a 10-game run flies by. The non-animated path spins
+    /// plainly and prints the verdict.
+    private func play(
+        game: Int,
+        config: GridConfig,
+        paylines: [Payline],
+        theme: SlotTheme,
+        animated: Bool,
+    ) async -> GridSpinResult {
+        let drawn = SlotOdds.gridPlan(
+            rows: config.rows,
+            cols: config.cols,
+            weights: config.weights,
+            seed: gameSeed(game),
+        )
+        guard animated else {
             let result = await SlotMachine.spinGrid(
-                columns,
+                SpinDriver.immediateGridColumns(drawn: drawn),
                 rows: config.rows,
                 paylines: paylines,
                 theme: theme,
                 plain: true,
             )
-            Self.printVerdict(result)
-            return
+            emit(games > 1 ? Self.verdictLine(game: game, result: result) : Self.verdict(result))
+            return result
         }
-        await animate(drawn: drawn, rows: config.rows, paylines: paylines, theme: theme)
+        let result = await animate(drawn: drawn, rows: config.rows, paylines: paylines, theme: theme, multi: games > 1)
+        if games > 1 {
+            emit(Self.verdictLine(game: game, result: result))
+            // Redraw the next game over this one: move the cursor back up over the grid and
+            // its verdict line so the session plays in place instead of scrolling away.
+            if game < games - 1 {
+                let gridLines = config.requiredHeight(cellHeight: theme.cellHeight) - 1
+                emit("\u{1B}[\(gridLines + 1)A")
+            }
+        }
+        return result
+    }
+
+    /// The seed for game `game`: derived from `--seed` so a session is reproducible yet every
+    /// game differs; `nil` when no seed was given (each game uses the system generator).
+    private func gameSeed(_ game: Int) -> UInt64? {
+        seed.map { $0 &+ UInt64(game) }
     }
 
     private func makeConfig(symbolCount: Int) throws -> GridConfig {
@@ -68,12 +116,19 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return wideEnough && tallEnough
     }
 
-    /// Spins with the animation and the keypress / auto stop. Prints no verdict — the reels
-    /// and the closing flash are the result.
-    private func animate(drawn: [[Int]], rows: Int, paylines: [Payline], theme: SlotTheme) async {
+    /// Spins one game with the animation. A single game uses the keypress / auto stop; in a
+    /// multi-game session every game auto-spins on a timer (no key per game). Returns the
+    /// game's result; the reels and closing flash are its on-screen outcome.
+    private func animate(
+        drawn: [[Int]],
+        rows: Int,
+        paylines: [Payline],
+        theme: SlotTheme,
+        multi: Bool,
+    ) async -> GridSpinResult {
         let gate = ReelGate()
         let columns = SpinDriver.gridColumns(drawn: drawn, gate: gate)
-        await KeyReader.withKeys { keys in
+        return await KeyReader.withKeys { keys in
             async let spin: GridSpinResult = SlotMachine.spinGrid(
                 columns,
                 rows: rows,
@@ -81,17 +136,19 @@ struct SlotMachineCommand: AsyncParsableCommand {
                 theme: theme,
                 plain: false,
             )
-            await drive(keys: keys, gate: gate, columnCount: drawn.count)
-            _ = await spin
+            await drive(keys: keys, gate: gate, columnCount: drawn.count, multi: multi)
+            return await spin
         }
     }
 
-    /// Releases the columns: in `--auto`, wait for one keypress then stop them on a timer; by
-    /// default, stop one column per keypress.
-    private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int) async {
-        if auto {
-            var iterator = keys.makeAsyncIterator()
-            _ = await iterator.next() // one key to start the auto spin
+    /// Releases the columns: a multi-game session (or `--auto`) stops them on a timer; a
+    /// single interactive game stops one column per keypress.
+    private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int, multi: Bool) async {
+        if auto || multi {
+            if !multi {
+                var iterator = keys.makeAsyncIterator()
+                _ = await iterator.next() // one key to start a single auto spin
+            }
             await SpinDriver.driveByTimer(gate: gate, reelCount: columnCount, stagger: Self.stagger)
         } else {
             await SpinDriver.driveByKeys(keys, gate: gate, reelCount: columnCount)
@@ -101,14 +158,24 @@ struct SlotMachineCommand: AsyncParsableCommand {
     /// Seconds between columns in the auto stop.
     private static let stagger = 0.28
 
-    private static func printVerdict(_ result: GridSpinResult) {
-        let verdict = if result.isJackpot {
+    /// A single game's one-line verdict.
+    private static func verdict(_ result: GridSpinResult) -> String {
+        let text = if result.isJackpot {
             "🎰 JACKPOT! 🎰"
         } else if result.didWin {
             "🎉 \(result.winningLines.count) line(s)!"
         } else {
             "no win — spin again."
         }
-        FileHandle.standardOutput.write(Data("\(verdict)\n".utf8))
+        return text + "\n"
+    }
+
+    /// A numbered verdict line for a game in a multi-game session.
+    private static func verdictLine(game: Int, result: GridSpinResult) -> String {
+        "Game \(game + 1): " + verdict(result)
+    }
+
+    private func emit(_ text: String) {
+        FileHandle.standardOutput.write(Data(text.utf8))
     }
 }
