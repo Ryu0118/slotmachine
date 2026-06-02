@@ -82,7 +82,7 @@ struct SlotMachineCommand: AsyncParsableCommand {
             emit(games > 1 ? Self.verdictLine(game: game, result: result) : Self.verdict(result))
             return result
         }
-        let result = await animate(drawn: drawn, rows: config.rows, paylines: paylines, theme: theme, multi: games > 1)
+        let result = await animate(drawn: drawn, rows: config.rows, paylines: paylines, theme: theme)
         if games > 1 {
             emit(Self.verdictLine(game: game, result: result))
             // Redraw the next game over this one: move the cursor back up over the grid and
@@ -116,15 +116,13 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return wideEnough && tallEnough
     }
 
-    /// Spins one game with the animation. A single game uses the keypress / auto stop; in a
-    /// multi-game session every game auto-spins on a timer (no key per game). Returns the
+    /// Spins one game with the animation, stopping by keypress or `--auto`. Returns the
     /// game's result; the reels and closing flash are its on-screen outcome.
     private func animate(
         drawn: [[Int]],
         rows: Int,
         paylines: [Payline],
         theme: SlotTheme,
-        multi: Bool,
     ) async -> GridSpinResult {
         let gate = ReelGate()
         let columns = SpinDriver.gridColumns(drawn: drawn, gate: gate)
@@ -136,19 +134,16 @@ struct SlotMachineCommand: AsyncParsableCommand {
                 theme: theme,
                 plain: false,
             )
-            await drive(keys: keys, gate: gate, columnCount: drawn.count, multi: multi)
+            await drive(keys: keys, gate: gate, columnCount: drawn.count)
             return await spin
         }
     }
 
-    /// Releases the columns: a multi-game session (or `--auto`) stops them on a timer; a
-    /// single interactive game stops one column per keypress.
-    private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int, multi: Bool) async {
-        if auto || multi {
-            if !multi {
-                var iterator = keys.makeAsyncIterator()
-                _ = await iterator.next() // one key to start a single auto spin
-            }
+    /// Releases the columns. The stop style is chosen by `--auto` alone (independent of how
+    /// many games): with `--auto` the columns stop on a timer; otherwise one column per
+    /// keypress. So `--games 10` is ten hand-stopped games; add `--auto` to let them run.
+    private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int) async {
+        if auto {
             await SpinDriver.driveByTimer(gate: gate, reelCount: columnCount, stagger: Self.stagger)
         } else {
             await SpinDriver.driveByKeys(keys, gate: gate, reelCount: columnCount)

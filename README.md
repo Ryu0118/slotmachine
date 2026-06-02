@@ -44,10 +44,11 @@ On a terminal the reels spin and you **stop them yourself**: press any key
 (Enter, Space, …) to stop the next reel (or column), left to right. With `--auto`,
 one keypress starts the spin and the reels stop one after another on their own.
 
-`--games N` plays `N` games in a row — each one auto-spins, no key needed — and
-ends with a **session stats** panel: games, wins and win rate, jackpots, your best
-streak, and total lines, with a win-rate bar that lights up. With `--seed` the
-whole session is reproducible (each game still differs).
+`--games N` plays `N` games in a row and ends with a **session stats** panel:
+games, wins and win rate, jackpots, your best streak, and total lines, with a
+win-rate bar that lights up. You still stop each game yourself by keypress — add
+`--auto` to let them run hands-free. With `--seed` the whole session is
+reproducible (each game still differs).
 
 A single row (`--reels`) pays when every reel matches. A square grid (`--grid N`)
 pays along any of its `N` rows or two diagonals — line up the `7`s on any line for

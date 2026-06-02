@@ -6,4 +6,4 @@ rules:
   doc: README.md
   message: "CLI flags or odds/range rules changed \u2014 update README (Usage / How
     the odds work)."
-  checksum: 57c0496ce462eff35914bcf55bcc52a07b740b59250aa0ebbab5a08a78abf9ae
+  checksum: 6432049f39a525ae9dfbfb7230c4e0e01bba0dcd9ac8aba51556862170f87c34
