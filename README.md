@@ -28,17 +28,26 @@ swift build -c release
 ## Usage
 
 ```bash
-slotmachine                 # 3 reels, default odds
+slotmachine                 # 3 reels; press a key to stop each reel in turn
 slotmachine -n 7            # 7 reels — chase 7777777
+slotmachine --auto          # press once, then the reels stop on their own
 slotmachine --odds 0.5      # easier: a 7 lands half the time
 slotmachine --seed 42       # reproducible spin
 slotmachine --silent        # no animation, print the result line only
 ```
 
+On a terminal the reels spin and you **stop them yourself**: press any key
+(Enter, Space, …) to stop the next reel, left to right. With `--auto`, one
+keypress starts the spin and the reels stop one after another on their own.
+
+The eight faces are `7` (the jackpot), `BAR`, cherry, bell, plum, orange, grape,
+and diamond. Line them all up to win; line up the `7`s for the jackpot.
+
 | Flag | Meaning |
 |------|---------|
 | `-n`, `--reels` | Number of reels, 2–9 (default 3) |
 | `--odds` | Per-reel chance of a `7`, in `(0, 1]` (default `0.1`) |
+| `--auto` | Press once to spin; reels then stop on their own |
 | `--seed` | Seed for a reproducible spin |
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
