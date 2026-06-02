@@ -2,8 +2,8 @@ rules:
 - name: readme-cli
   sources:
   - Sources/slotmachine/SlotMachineCommand.swift
-  - Sources/SlotMachineCore/SlotConfig.swift
+  - Sources/SlotMachineCore/GridConfig.swift
   doc: README.md
   message: "CLI flags or odds/range rules changed \u2014 update README (Usage / How
     the odds work)."
-  checksum: 4e5a7b48a5ba8b944f0fb958e65c21c8e3dc64d2cc3b0fee1d7ef27bee5ffba2
+  checksum: 83a5d334e42405f89b0a0973f7df170e3c2daa2acdfbcf0a00cf3f585fb2260a

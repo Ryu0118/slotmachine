@@ -7,19 +7,19 @@ import SlotMachineCore
 /// symbols are decided up front, so the gate only controls *when* each reel reveals — the
 /// outcome is fixed (and `--seed`-reproducible) regardless of how the stop is driven.
 enum SpinDriver {
-    /// Reels with no gate — each immediately returns its drawn symbol. For the plain
-    /// (non-animated) path, where nothing drives a gate and the result is wanted at once.
-    static func immediateReels(drawn: [Int]) -> [SymbolReel] {
-        drawn.map { symbol in SymbolReel { symbol } }
+    /// Columns with no gate — each immediately returns its drawn cells. For the plain
+    /// (non-animated) grid path.
+    static func immediateGridColumns(drawn: [[Int]]) -> [GridReel] {
+        drawn.map { column in GridReel { column } }
     }
 
-    /// Builds one reel per drawn index, each gated on its turn so reels stop in order. A reel
-    /// reveals its symbol the instant its turn comes — the stop is immediate, no hold.
-    static func reels(drawn: [Int], gate: ReelGate) -> [SymbolReel] {
-        drawn.enumerated().map { index, symbol in
-            SymbolReel {
+    /// Builds one grid column per drawn column, each gated on its turn so columns stop left
+    /// to right. A column reveals all its cells the instant its turn comes.
+    static func gridColumns(drawn: [[Int]], gate: ReelGate) -> [GridReel] {
+        drawn.enumerated().map { index, column in
+            GridReel {
                 await gate.awaitTurn(index)
-                return symbol
+                return column
             }
         }
     }

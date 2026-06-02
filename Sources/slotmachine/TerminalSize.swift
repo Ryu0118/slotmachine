@@ -5,19 +5,37 @@ import Foundation
     import Darwin
 #endif
 
-/// Reads the terminal's column count so the CLI can fall back to plain output when the
-/// reel grid would be wider than the window (where the animated in-place redraw desyncs).
-enum TerminalWidth {
-    /// The terminal width in columns, or `nil` when stdout isn't a terminal whose size can
-    /// be read. Prefers the `ioctl` window size and falls back to the `COLUMNS` environment.
+/// Reads the terminal's size so the CLI can fall back to plain output when the grid would be
+/// wider or taller than the window (where the animated in-place redraw desyncs).
+enum TerminalSize {
+    /// The terminal width in columns, or `nil` when the size can't be read. Prefers the
+    /// `ioctl` window size and falls back to the `COLUMNS` environment.
     static var columns: Int? {
+        windowSize?.ws_col.intIfPositive ?? envInt("COLUMNS")
+    }
+
+    /// The terminal height in rows, or `nil` when the size can't be read. Prefers the `ioctl`
+    /// window size and falls back to the `LINES` environment.
+    static var rows: Int? {
+        windowSize?.ws_row.intIfPositive ?? envInt("LINES")
+    }
+
+    private static var windowSize: winsize? {
         var size = winsize()
-        if ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &size) == 0, size.ws_col > 0 {
-            return Int(size.ws_col)
+        guard ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &size) == 0 else { return nil }
+        return size
+    }
+
+    private static func envInt(_ name: String) -> Int? {
+        guard let value = ProcessInfo.processInfo.environment[name], let parsed = Int(value), parsed > 0 else {
+            return nil
         }
-        if let columns = ProcessInfo.processInfo.environment["COLUMNS"], let value = Int(columns), value > 0 {
-            return value
-        }
-        return nil
+        return parsed
+    }
+}
+
+private extension UInt16 {
+    var intIfPositive: Int? {
+        self > 0 ? Int(self) : nil
     }
 }
