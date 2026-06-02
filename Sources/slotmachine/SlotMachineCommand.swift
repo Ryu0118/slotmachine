@@ -89,7 +89,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
                 theme: context.theme,
                 plain: true,
             )
-            emit(games > 1 ? Self.verdictLine(game: game, result: result) : Self.verdict(result))
+            // A multi-game session shows only the closing stats; a single game prints its verdict.
+            if games == 1 { emit(Self.verdict(result)) }
             stats = stats.recording(outcome(result))
         }
         return stats
@@ -114,12 +115,11 @@ struct SlotMachineCommand: AsyncParsableCommand {
         } else {
             await spinAuto(game: game, context: context, gate: gate)
         }
-        if games > 1 {
-            emit(Self.verdictLine(game: game, result: result))
-            if game < games - 1 {
-                let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
-                emit("\u{1B}[\(gridLines + 1)A")
-            }
+        // A multi-game session prints no per-game line — only the closing stats. Redraw the
+        // next game over this one so the session plays in place instead of scrolling away.
+        if games > 1, game < games - 1 {
+            let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
+            emit("\u{1B}[\(gridLines)A")
         }
         return result
     }
@@ -191,11 +191,6 @@ struct SlotMachineCommand: AsyncParsableCommand {
             "no win — spin again."
         }
         return text + "\n"
-    }
-
-    /// A numbered verdict line for a game in a multi-game session.
-    private static func verdictLine(game: Int, result: GridSpinResult) -> String {
-        "Game \(game + 1): " + verdict(result)
     }
 
     private func emit(_ text: String) {
