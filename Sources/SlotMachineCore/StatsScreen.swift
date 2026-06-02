@@ -1,16 +1,26 @@
 import Foundation
-import SlotMachineCore
 
 /// Renders the closing session stats — the dopamine screen after a `--games N` run.
 ///
 /// On a color terminal it draws a bright double-ruled panel with a win-rate bar and a
 /// jackpot callout; on a plain pipe it prints the same numbers without escapes, so the
 /// output stays readable and byte-stable.
-enum StatsScreen {
+public enum StatsScreen {
     /// The full stats panel for `stats`, colored when `color` is set.
-    static func render(_ stats: GameStats, color: Bool) -> String {
+    public static func render(_ stats: GameStats, color: Bool) -> String {
         let lines = color ? colored(stats) : plain(stats)
         return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// The on-screen column width of `text` (ANSI-stripped, wide glyphs as two) — exposed so
+    /// tests can assert the colored panel's rows line up with its border.
+    public static func width(of text: String) -> Int {
+        displayWidth(text)
+    }
+
+    /// The colored panel as individual lines — exposed for alignment tests.
+    public static func coloredLines(_ stats: GameStats) -> [String] {
+        colored(stats)
     }
 
     private static func plain(_ stats: GameStats) -> [String] {
@@ -63,16 +73,36 @@ enum StatsScreen {
         return bold(cyan("║")) + pad(body, to: width) + bold(cyan("║"))
     }
 
-    /// Pads `text` to `width` *visible* columns, ignoring ANSI escapes.
+    /// Pads `text` to `width` *display* columns, ignoring ANSI escapes and counting wide
+    /// glyphs (emoji, CJK) as two columns — so a row with a 🎰 still lines up with the border.
     private static func pad(_ text: String, to width: Int) -> String {
-        let visible = text.replacing(/\u{1B}\[[0-9;]*m/, with: "").count
-        return text + String(repeating: " ", count: max(0, width - visible))
+        text + String(repeating: " ", count: max(0, width - displayWidth(text)))
     }
 
     private static func center(_ text: String, _ width: Int) -> String {
-        let pad = max(0, width - text.count)
+        let pad = max(0, width - displayWidth(text))
         let left = pad / 2
         return String(repeating: " ", count: left) + text + String(repeating: " ", count: pad - left)
+    }
+
+    /// The on-screen column width of `text`: ANSI escapes count for nothing, wide glyphs
+    /// (emoji and East-Asian wide/fullwidth) for two columns, everything else for one.
+    private static func displayWidth(_ text: String) -> Int {
+        let stripped = text.replacing(/\u{1B}\[[0-9;]*m/, with: "")
+        return stripped.unicodeScalars.reduce(0) { total, scalar in
+            total + (isWide(scalar) ? 2 : 1)
+        }
+    }
+
+    private static func isWide(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x1100 ... 0x115F, 0x2E80 ... 0xA4CF, 0xAC00 ... 0xD7A3, 0xF900 ... 0xFAFF,
+             0xFE30 ... 0xFE4F, 0xFF00 ... 0xFF60, 0xFFE0 ... 0xFFE6,
+             0x1F300 ... 0x1FAFF, 0x2600 ... 0x27BF, 0x1F000 ... 0x1F02F:
+            true
+        default:
+            false
+        }
     }
 
     private static func flames(_ count: Int) -> String {
