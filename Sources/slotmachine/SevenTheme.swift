@@ -11,29 +11,29 @@ import SlotMachineCore
 enum SevenTheme {
     private static let cellWidth = 8
     private static let cellHeight = 5
-    /// The weighted spinning pool's length — long enough to render odds like 0.1 reasonably.
-    private static let poolLength = 40
 
     private static let faces = [seven, bar, cherry, bell, plum, orange, grape, diamond]
 
-    /// Builds the slot theme. When `skillOdds` is given, the spinning pool is **weighted** so
-    /// the `7` scrolls by only about that fraction of the time — a skill stop then catches it
-    /// with that probability. Without it the pool is the eight faces evenly (for the auto path,
-    /// which draws its outcome up front). Throws ``SlotThemeError`` only on malformed art (it
-    /// isn't — ``symbol(_:)`` centers every row), so callers can treat this as non-failing.
-    static func make(skillOdds: Double? = nil) throws -> SlotTheme {
-        let spinningFaces: [SlotSymbol] = if let skillOdds {
-            SlotOdds.weightedPool(symbolCount: faces.count, jackpotOdds: skillOdds, length: poolLength)
-                .map { faces[$0] }
-        } else {
-            faces
-        }
-        return try SlotTheme.make { draft in
+    /// The reel strip as ``SlotTheme/symbols`` indices: each spinning face mapped back to its
+    /// landing index (a face not among `symbols` maps to 0). This is exactly what a stop lands
+    /// on — the same mapping ``SlotMachine`` uses for a hand stop — so `--auto` and the hand
+    /// stop share one strip.
+    static func stripIndices(for theme: SlotTheme) -> [Int] {
+        theme.spinning.map { face in theme.symbols.firstIndex(of: face) ?? 0 }
+    }
+
+    /// Builds the slot theme. The spinning strip is the eight faces, equally likely — a reel of
+    /// distinct faces. A hand stop lands on whatever's showing and `--auto` stops the same strip
+    /// at a random position, so the `7` is simply 1 in 8 per cell with no rigging. Throws
+    /// ``SlotThemeError`` only on malformed art (it isn't — ``symbol(_:)`` centers every row),
+    /// so callers can treat this as non-failing.
+    static func make() throws -> SlotTheme {
+        try SlotTheme.make { draft in
             draft.cellWidth = cellWidth
             draft.cellHeight = cellHeight
             draft.symbols = faces
             draft.jackpotIndex = 0
-            draft.spinning = spinningFaces
+            draft.spinning = faces
             // `win` / `lose` are unused by the symbol path but required by the validator.
             draft.win = seven
             draft.lose = bar

@@ -3,26 +3,20 @@ import Foundation
 import SlotKit
 import SlotMachineCore
 
-/// `slotmachine` — spin an ASCII slot machine in your terminal with real slot-machine odds.
+/// `slotmachine` — spin an ASCII slot machine in your terminal: scrolling reels, hand stops.
 @main
 struct SlotMachineCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "slotmachine",
-        abstract: "Spin an ASCII slot machine with real slot-machine odds.",
+        abstract: "Spin an ASCII slot machine with scrolling reels you stop by hand.",
         version: SlotMachineVersion.current,
     )
 
-    @Option(name: [.customShort("n"), .customLong("reels")], help: "Reels in a single-row machine (1…10).")
-    var reels = 3
-
-    @Flag(name: .customLong("grid"), help: "Play the 3×3 machine that pays on rows and diagonals.")
-    var grid = false
-
     @Option(
-        name: .customLong("odds"),
-        help: "Chance the 7 shows, 0–1 (0.1 = one in ten). 'odds' means probability, not an odd number.",
+        name: [.customShort("n"), .customLong("reels")],
+        help: "Play a single row of this many reels (1…10) instead of the 3×3 board.",
     )
-    var odds = 0.1
+    var reels: Int?
 
     @Option(name: .customLong("seed"), help: "Seed for a reproducible spin.")
     var seed: UInt64?
@@ -38,16 +32,23 @@ struct SlotMachineCommand: AsyncParsableCommand {
 
     mutating func run() async throws {
         guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
-        // Hand-stopped games are a skill stop (land on the showing face), so the spinning pool
-        // is weighted to make the 7 rare; --auto draws its outcome up front, so it uses the
-        // plain pool. The config's symbol count is the same eight faces either way.
+        // Every face is equally likely; hand and auto stops share the one reel strip, so a
+        // hand stop lands on whatever's showing and auto stops the same strip at a random
+        // position. The config's symbol count is the same eight faces either way.
         let skillStop = !auto
-        let theme = try SevenTheme.make(skillOdds: skillStop ? odds : nil)
+        let theme = try SevenTheme.make()
         let config = try makeConfig(symbolCount: theme.symbols.count)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
         let animated = OutputMode.shouldAnimate(forcePlain: silent || !fits(config, theme: theme))
 
-        let context = SpinContext(config: config, paylines: paylines, theme: theme, skillStop: skillStop)
+        let strip = SevenTheme.stripIndices(for: theme)
+        let context = SpinContext(
+            config: config,
+            paylines: paylines,
+            theme: theme,
+            skillStop: skillStop,
+            strip: strip,
+        )
         let stats = animated
             ? await playAnimatedSession(context)
             : await playPlainSession(context)
@@ -62,6 +63,9 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let paylines: [Payline]
         let theme: SlotTheme
         let skillStop: Bool
+        /// The reel strip as ``SlotTheme/symbols`` indices — what `--auto` stops on at a random
+        /// position. The same faces the reels scroll, so the auto landing is a real reel stop.
+        let strip: [Int]
     }
 
     /// Plays the whole session animated. Opens the key reader ONCE (raw mode entered once) and
@@ -81,7 +85,7 @@ struct SlotMachineCommand: AsyncParsableCommand {
     private func playPlainSession(_ context: SpinContext) async -> GameStats {
         var stats = GameStats.empty
         for game in 0 ..< games {
-            let drawn = drawnGrid(game: game, config: context.config)
+            let drawn = drawnGrid(game: game, context: context)
             let result = await SlotMachine.spinGrid(
                 SpinDriver.immediateGridColumns(drawn: drawn),
                 rows: context.config.rows,
@@ -100,8 +104,16 @@ struct SlotMachineCommand: AsyncParsableCommand {
         GameOutcome(didWin: result.didWin, isJackpot: result.isJackpot, lineCount: result.winningLines.count)
     }
 
-    private func drawnGrid(game: Int, config: GridConfig) -> [[Int]] {
-        SlotOdds.gridPlan(rows: config.rows, cols: config.cols, weights: config.weights, seed: gameSeed(game))
+    /// The auto-stop landing: stop each column at a random position on the same reel strip the
+    /// reels scroll, so the board is always a real reel position (no impossible vertical
+    /// triples) and `--auto` shares one model with the hand stop.
+    private func drawnGrid(game: Int, context: SpinContext) -> [[Int]] {
+        SlotOdds.gridStops(
+            rows: context.config.rows,
+            cols: context.config.cols,
+            strip: context.strip,
+            seed: gameSeed(game),
+        )
     }
 
     /// Animates one game. Hand-stopped games skill-stop (land on the showing face) via
@@ -138,7 +150,7 @@ struct SlotMachineCommand: AsyncParsableCommand {
     }
 
     private func spinAuto(game: Int, context: SpinContext, gate: ReelGate) async -> GridSpinResult {
-        let drawn = drawnGrid(game: game, config: context.config)
+        let drawn = drawnGrid(game: game, context: context)
         let columns = SpinDriver.gridColumns(drawn: drawn, gate: gate)
         async let spin: GridSpinResult = SlotMachine.spinGrid(
             columns,
@@ -157,11 +169,12 @@ struct SlotMachineCommand: AsyncParsableCommand {
         seed.map { $0 &+ UInt64(game) }
     }
 
+    /// The 3×3 board is the default; `--reels N` switches to a single row of N reels.
     private func makeConfig(symbolCount: Int) throws -> GridConfig {
-        if grid {
-            return try GridConfig.square(odds: odds, symbolCount: symbolCount)
+        if let reels {
+            return try GridConfig.singleRow(reels: reels, symbolCount: symbolCount)
         }
-        return try GridConfig.singleRow(reels: reels, odds: odds, symbolCount: symbolCount)
+        return try GridConfig.square(symbolCount: symbolCount)
     }
 
     /// Whether the grid fits the terminal in both width and height; if either is too small the

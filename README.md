@@ -1,10 +1,10 @@
 # 🎰 slotmachine
 
-**A real slot machine. In your terminal. With real odds.**
+**A real slot machine. In your terminal.**
 
 The reels actually *scroll* — faces flying down the window like the machine on the
-casino floor. You stop them **yourself**, by hand, key by key. And the `7` only
-flashes past one time in ten… so landing it is all you.
+casino floor. You stop them **yourself**, by hand, key by key. Catch the `7`s and
+the screen goes off.
 
 ```
 ╔════════╗╔════════╗╔════════╗
@@ -17,7 +17,7 @@ flashes past one time in ten… so landing it is all you.
         smash ⏎ to stop the next reel →
 ```
 
-Catch three `7`s and the screen goes off:
+Line the `7`s up — across a row, or a diagonal — and you hit it:
 
 ```
 ╔════════╗╔════════╗╔════════╗
@@ -91,37 +91,22 @@ streak counter, a blinking ★ when you hit the big one. Pure dopamine.
 ## How to play
 
 ```bash
-slotmachine                 # 3 reels — smash ⏎ to stop each one in turn
-slotmachine -n 7            # 7 reels — chase 7777777
-slotmachine --grid          # a 3×3 board: rows AND diagonals pay
+slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
+slotmachine -n 7            # a single row of 7 reels — chase 7777777
 slotmachine --games 10      # 10 games back to back, then the stats panel
 slotmachine --auto          # hands free — one press, the reels stop themselves
-slotmachine --odds 0.5      # crank the luck: a 7 lands half the time
 slotmachine --seed 42       # reproducible run
 slotmachine --silent        # no animation, just the result
 ```
 
+By default you get the **3×3 board** — it pays along any of its three rows or two
+diagonals. Line up the `7`s on any of those and it's a jackpot. Want a single row
+instead? `-n N` gives you N reels (1–10) that pay when they all match.
+
 **You stop the reels yourself.** Hit any key (Enter, Space, …) to slam the next
 reel — left to right — and it locks onto **whatever face is flying past at that
-exact instant**. The `7` only scrolls by about `--odds` of the time, so catching
-one is pure timing and nerve. That's the skill stop. That's the whole game.
-
-Too fast? Hit `--auto` and let the machine stop itself — it still wins at the real
-rate (it draws each outcome up front so a fixed timer can't cheat the odds).
-
-## The odds are real
-
-By default a `7` lands on a reel **one time in ten**. So:
-
-| You're chasing | The odds |
-|----------------|----------|
-| 3 in a row (`slotmachine`) | 1 in 1,000 |
-| 7 in a row (`-n 7`) | 1 in 10 million |
-| a 3×3 board (`--grid`) | rows *and* both diagonals can pay |
-| 9 in a row (`-n 9`) | about 1 in a **billion** |
-
-That's a real machine — it's *meant* to almost never line up. Want a softer ride?
-`--odds 0.5` drops the bar and the `7`s rain down.
+exact instant**. That's the skill stop. That's the whole game. Too quick for you?
+`--auto` lets the machine stop itself, hands free.
 
 The eight faces: `7` (the jackpot), `BAR`, cherry, bell, plum, orange, grape, and
 diamond.
@@ -130,27 +115,12 @@ diamond.
 
 | Flag | Meaning |
 |------|---------|
-| `-n`, `--reels` | Reels in a single-row machine, 1–10 (default 3) |
-| `--grid` | Play the 3×3 machine (rows + diagonals) |
+| `-n`, `--reels` | Play a single row of N reels, 1–10 (default: the 3×3 board) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
-| `--odds` | Chance a `7` shows, 0–1 (default `0.1`). 'odds' = probability |
-| `--auto` | Stop the reels on a timer (drawn up front) instead of by hand |
+| `--auto` | Stop the reels on a timer instead of by hand |
 | `--seed` | Seed for a reproducible spin |
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
-
-## How the odds actually work
-
-`--odds` is the chance the `7` shows on a cell (it means *probability*, 0–1 — not an
-odd number).
-
-- **Hand stop** (the default): the reels scroll a weighted strip of faces in which the
-  `7` appears about `--odds` of the time. You stop on whatever's showing, so catching a
-  `7` is a matter of timing and luck — like a real machine. `--seed` doesn't make this
-  reproducible (your reflexes decide it).
-- **`--auto`**: the whole grid is drawn up front at `--odds`, then revealed on a timer —
-  a fixed interval can't aim, so drawing up front keeps the win rate honest. `--seed`
-  reproduces an auto session exactly.
 
 ## Terminal too small?
 

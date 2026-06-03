@@ -4,6 +4,6 @@ rules:
   - Sources/slotmachine/SlotMachineCommand.swift
   - Sources/SlotMachineCore/GridConfig.swift
   doc: README.md
-  message: "CLI flags or odds/range rules changed \u2014 update README (Usage / How
-    the odds work)."
-  checksum: b480323ce237328e2fc66f355e6415d9531f6c3c7ba4caf8d3164e3607b020dc
+  message: "CLI flags or the reel/range rules changed \u2014 update README (How to
+    play / Every flag)."
+  checksum: dee2c1271245bf4029e44ea93815ca65e00cf09aa09ca07619baeaf77a55b3c1

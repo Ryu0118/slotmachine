@@ -8,8 +8,6 @@
 public enum GridConfigError: Error, Equatable, CustomStringConvertible {
     /// The reel count is outside the supported range for a single-row machine.
     case reelCountOutOfRange(Int)
-    /// The per-cell jackpot odds are not in the open-to-closed range (0, 1].
-    case oddsOutOfRange(Double)
     /// The symbol count is too small to host a jackpot symbol plus at least one other.
     case tooFewSymbols(Int)
 
@@ -19,8 +17,6 @@ public enum GridConfigError: Error, Equatable, CustomStringConvertible {
         case let .reelCountOutOfRange(reels):
             "reels must be between \(GridConfig.reelRange.lowerBound) and " +
                 "\(GridConfig.reelRange.upperBound) (got \(reels))"
-        case let .oddsOutOfRange(odds):
-            "odds must be greater than 0 and at most 1 (got \(odds))"
         case let .tooFewSymbols(count):
             "need at least 2 symbols to spin (got \(count))"
         }
@@ -29,9 +25,10 @@ public enum GridConfigError: Error, Equatable, CustomStringConvertible {
 
 /// A validated grid configuration: an `rows × cols` machine with per-symbol landing odds.
 ///
-/// A single-row machine is `rows == 1` with `cols` columns (the `--reels` mode); a square
-/// machine is the fixed `3 × 3` board (the `--grid` mode). The jackpot symbol (index 0) lands
-/// with probability `odds`; the rest splits evenly across the other symbols.
+/// A single-row machine is `rows == 1` with `cols` columns (the `--reels` mode); the default is
+/// the fixed `3 × 3` board. Every face is equally likely — a reel is one strip of the distinct
+/// faces, and a stop lands on whatever face is showing, so the jackpot (`7`) is simply 1 in
+/// `symbolCount` per cell, like a real machine with no rigging.
 public struct GridConfig: Sendable, Equatable {
     /// The supported single-row reel-count range (`1...10`).
     public static let reelRange = 1 ... 10
@@ -42,36 +39,25 @@ public struct GridConfig: Sendable, Equatable {
     public let rows: Int
     /// Number of columns.
     public let cols: Int
-    /// Per-cell probability the jackpot symbol (index 0) is drawn.
-    public let odds: Double
     /// How many distinct symbols a cell can land on (index 0 is the jackpot).
     public let symbolCount: Int
 
-    /// Builds a single-row machine of `reels` columns. Throws on a bad reel count / odds.
-    public static func singleRow(reels: Int, odds: Double, symbolCount: Int) throws -> GridConfig {
+    /// Builds a single-row machine of `reels` columns. Throws on a bad reel count.
+    public static func singleRow(reels: Int, symbolCount: Int) throws -> GridConfig {
         guard reelRange.contains(reels) else { throw GridConfigError.reelCountOutOfRange(reels) }
-        return try GridConfig(rows: 1, cols: reels, odds: odds, symbolCount: symbolCount)
+        return try GridConfig(rows: 1, cols: reels, symbolCount: symbolCount)
     }
 
-    /// Builds the fixed `3 × 3` square machine. Throws only on bad odds.
-    public static func square(odds: Double, symbolCount: Int) throws -> GridConfig {
-        try GridConfig(rows: gridSize, cols: gridSize, odds: odds, symbolCount: symbolCount)
+    /// Builds the fixed `3 × 3` square machine (the default). Throws only on too few symbols.
+    public static func square(symbolCount: Int) throws -> GridConfig {
+        try GridConfig(rows: gridSize, cols: gridSize, symbolCount: symbolCount)
     }
 
-    private init(rows: Int, cols: Int, odds: Double, symbolCount: Int) throws {
-        guard odds > 0, odds <= 1 else { throw GridConfigError.oddsOutOfRange(odds) }
+    private init(rows: Int, cols: Int, symbolCount: Int) throws {
         guard symbolCount >= 2 else { throw GridConfigError.tooFewSymbols(symbolCount) }
         self.rows = rows
         self.cols = cols
-        self.odds = odds
         self.symbolCount = symbolCount
-    }
-
-    /// Per-symbol landing weights: index 0 (jackpot) is `odds`, the rest split `1 - odds`
-    /// evenly across the other symbols. Sums to 1.
-    public var weights: [Double] {
-        let rest = (1 - odds) / Double(symbolCount - 1)
-        return [odds] + Array(repeating: rest, count: symbolCount - 1)
     }
 
     /// The number of cells to draw: `rows × cols`.
