@@ -18,11 +18,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
     )
     var reels: Int?
 
-    @Option(name: .customLong("seed"), help: "Seed for a reproducible spin.")
+    @Option(name: .customLong("seed"), help: "Seed for a reproducible spin (silent mode).")
     var seed: UInt64?
-
-    @Flag(name: .customLong("auto"), help: "Press once to spin; reels then stop on their own (ka-chunk, ka-chunk).")
-    var auto = false
 
     @Option(name: .customLong("games"), help: "How many games to play in a row; prints session stats at the end.")
     var games = 1
@@ -32,23 +29,16 @@ struct SlotMachineCommand: AsyncParsableCommand {
 
     mutating func run() async throws {
         guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
-        // Every face is equally likely; hand and auto stops share the one reel strip, so a
-        // hand stop lands on whatever's showing and auto stops the same strip at a random
-        // position. The config's symbol count is the same eight faces either way.
-        let skillStop = !auto
+        // Every face is equally likely. You stop the reels by hand and they land on whatever's
+        // showing; silent mode (no keyboard) stops the same strip at a random position. The
+        // config's symbol count is the same eight faces either way.
         let theme = try SevenTheme.make()
         let config = try makeConfig(symbolCount: theme.symbols.count)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
         let animated = OutputMode.shouldAnimate(forcePlain: silent || !fits(config, theme: theme))
 
         let strip = SevenTheme.stripIndices(for: theme)
-        let context = SpinContext(
-            config: config,
-            paylines: paylines,
-            theme: theme,
-            skillStop: skillStop,
-            strip: strip,
-        )
+        let context = SpinContext(config: config, paylines: paylines, theme: theme, strip: strip)
         let stats = animated
             ? await playAnimatedSession(context)
             : await playPlainSession(context)
@@ -62,9 +52,9 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let config: GridConfig
         let paylines: [Payline]
         let theme: SlotTheme
-        let skillStop: Bool
-        /// The reel strip as ``SlotTheme/symbols`` indices — what `--auto` stops on at a random
-        /// position. The same faces the reels scroll, so the auto landing is a real reel stop.
+        /// The reel strip as ``SlotTheme/symbols`` indices — what the silent (no-keyboard) draw
+        /// stops on at a random position. The same faces the reels scroll, so a silent landing
+        /// is a real reel stop too.
         let strip: [Int]
     }
 
@@ -116,17 +106,13 @@ struct SlotMachineCommand: AsyncParsableCommand {
         )
     }
 
-    /// Animates one game. Hand-stopped games skill-stop (land on the showing face) via
-    /// `spinGridSkill`; `--auto` draws up front and reveals on a timer via `spinGrid`. In a
-    /// multi-game session it prints a verdict line and redraws the next game over this one.
+    /// Animates one game: you skill-stop each column by hand (land on the showing face) via
+    /// `spinGridSkill`. In a multi-game session it prints no per-game line and redraws the next
+    /// game over this one.
     private func animateGame(game: Int, context: SpinContext, keys: AsyncStream<UInt8>) async -> GridSpinResult {
         let config = context.config
         let gate = ReelGate()
-        let result: GridSpinResult = if context.skillStop {
-            await spinSkill(context: context, gate: gate, keys: keys)
-        } else {
-            await spinAuto(game: game, context: context, gate: gate)
-        }
+        let result = await spinSkill(context: context, gate: gate, keys: keys)
         // A multi-game session prints no per-game line — only the closing stats. Redraw the
         // next game over this one so the session plays in place instead of scrolling away.
         if games > 1, game < games - 1 {
@@ -149,22 +135,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return await spin
     }
 
-    private func spinAuto(game: Int, context: SpinContext, gate: ReelGate) async -> GridSpinResult {
-        let drawn = drawnGrid(game: game, context: context)
-        let columns = SpinDriver.gridColumns(drawn: drawn, gate: gate)
-        async let spin: GridSpinResult = SlotMachine.spinGrid(
-            columns,
-            rows: context.config.rows,
-            paylines: context.paylines,
-            theme: context.theme,
-            plain: false,
-        )
-        await SpinDriver.driveByTimer(gate: gate, reelCount: context.config.cols, stagger: Self.stagger)
-        return await spin
-    }
-
-    /// The seed for game `game`: derived from `--seed` so a session is reproducible yet every
-    /// game differs; `nil` when no seed was given (each game uses the system generator).
+    /// The seed for game `game`: derived from `--seed` so a silent session is reproducible yet
+    /// every game differs; `nil` when no seed was given (each game uses the system generator).
     private func gameSeed(_ game: Int) -> UInt64? {
         seed.map { $0 &+ UInt64(game) }
     }
@@ -185,14 +157,10 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return wideEnough && tallEnough
     }
 
-    /// Releases each column on a keypress, left to right — the hand stop. Used only on the
-    /// skill-stop (hand) path; `--auto` drives by timer in `spinAuto`.
+    /// Releases each column on a keypress, left to right — the hand stop.
     private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int) async {
         await SpinDriver.driveByKeys(keys, gate: gate, reelCount: columnCount)
     }
-
-    /// Seconds between columns in the auto stop.
-    private static let stagger = 0.28
 
     /// A single game's one-line verdict.
     private static func verdict(_ result: GridSpinResult) -> String {

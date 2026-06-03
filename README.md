@@ -116,8 +116,6 @@ streak counter, a blinking ★ when you hit the big one. Pure dopamine.
 slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
 slotmachine -n 7            # a single row of 7 reels — chase 7777777
 slotmachine --games 10      # 10 games back to back, then the stats panel
-slotmachine --auto          # hands free — one press, the reels stop themselves
-slotmachine --seed 42       # reproducible run
 slotmachine --silent        # no animation, just the result
 ```
 
@@ -127,8 +125,7 @@ instead? `-n N` gives you N reels (1–10) that pay when they all match.
 
 **You stop the reels yourself.** Hit any key (Enter, Space, …) to slam the next
 reel — left to right — and it locks onto **whatever face is flying past at that
-exact instant**. That's the skill stop. That's the whole game. Too quick for you?
-`--auto` lets the machine stop itself, hands free.
+exact instant**. That's the skill stop. That's the whole game.
 
 The eight faces: `7` (the jackpot), `BAR`, cherry, bell, plum, orange, grape, and
 diamond.
@@ -139,8 +136,7 @@ diamond.
 |------|---------|
 | `-n`, `--reels` | Play a single row of N reels, 1–10 (default: the 3×3 board) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
-| `--auto` | Stop the reels on a timer instead of by hand |
-| `--seed` | Seed for a reproducible spin |
+| `--seed` | Seed for a reproducible spin (silent mode) |
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
 
