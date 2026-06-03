@@ -92,11 +92,11 @@ struct SlotOddsTests {
 
     // MARK: - Per-lane strips (asymmetric reels)
 
-    /// Lane strips mirroring `SevenTheme`: the 7 (index 0) appears twice on lane 0, once on the
-    /// middle lane, once on a long final lane — so its per-cell rate is 1/3, 1/8, 1/16.
+    /// Lane strips mirroring `SevenTheme`: every lane carries exactly one 7 (index 0); the lanes
+    /// differ in length, so the 7's per-cell rate falls off — 1/8, 1/12, 1/16.
     private static let laneStrips: [[Int]] = [
-        [0, 1, 0, 2, 3, 4], // lane 0: 7 twice (1/3)
-        [0, 1, 2, 3, 4, 5, 6, 7], // middle: 7 once (1/8)
+        [0, 1, 2, 3, 4, 5, 6, 7], // lane 0: 7 once (1/8)
+        [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4], // middle: 7 once (1/12)
         [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 2], // final: 7 once, long (1/16)
     ]
 
@@ -132,14 +132,14 @@ struct SlotOddsTests {
         }
     }
 
-    /// **The asymmetry is real.** The 7 lands far more often on lane 0 than on the final lane —
-    /// each lane's per-cell 7 rate matches its strip (≈1/3, ≈1/8, ≈1/16), so the last reel
+    /// **The asymmetry is real.** The 7 lands more often on lane 0 than on the final lane — each
+    /// lane's per-cell 7 rate matches its strip length (≈1/8, ≈1/12, ≈1/16), so the last reel
     /// genuinely gates the jackpot.
     @Test
     func eachLaneHasItsOwnSevenRate() {
         let runs = 6000
         let grids = (0 ..< runs).map { SlotOdds.gridStops(rows: 3, cols: 3, strips: Self.laneStrips, seed: UInt64($0)) }
-        for (lane, expected) in [(0, 1.0 / 3.0), (1, 1.0 / 8.0), (2, 1.0 / 16.0)] {
+        for (lane, expected) in [(0, 1.0 / 8.0), (1, 1.0 / 12.0), (2, 1.0 / 16.0)] {
             let cells = grids.flatMap { $0[lane] }
             let rate = Double(cells.count { $0 == 0 }) / Double(cells.count)
             #expect(abs(rate - expected) < 0.02, "lane \(lane) 7 rate \(rate) ≉ \(expected)")

@@ -58,22 +58,24 @@ enum SevenTheme {
         }
     }
 
-    /// The strip (as `symbols` indices) for lane `lane` of `laneCount`. The `7` (0) appears
-    /// twice on the first reel, once on the middle reels, and once on a long final reel — so its
-    /// per-cell chance is 1/3, 1/8, then 1/16. No `7` (and no face) is circularly adjacent to
-    /// itself, so a column can never show a vertical triple.
+    /// The strip (as `symbols` indices) for lane `lane` of `laneCount`. Every reel carries
+    /// exactly one `7` (index 0); the reels differ in **length**, so the `7`'s per-cell chance
+    /// falls off down the row — 1/8 on the first reel, 1/12 in the middle, 1/16 on the last —
+    /// the scarce-final-reel weighting a real machine uses. One `7` per strip means it can never
+    /// show twice (or as a vertical triple) in a column, and no face is circularly adjacent to
+    /// itself, so a column never repeats a face.
     private static func laneStrip(_ lane: Int, of laneCount: Int) -> [Int] {
         let isLast = lane == laneCount - 1
         if lane == 0 {
-            // 7 twice, well spaced — the generous first reel (7 chance 1/3).
-            return [0, 1, 0, 2, 3, 4]
+            // The eight faces once — the most generous reel (7 chance 1/8).
+            return [0, 1, 2, 3, 4, 5, 6, 7]
         }
         if isLast {
-            // One 7 on a long strip — the scarce final reel (7 chance 1/16), the near-miss gate.
+            // One 7 on the longest strip — the scarce final reel (7 chance 1/16), the gate.
             return [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 2]
         }
-        // The even eight faces — a middle reel (7 chance 1/8).
-        return [0, 1, 2, 3, 4, 5, 6, 7]
+        // One 7 on a medium strip — a middle reel (7 chance 1/12).
+        return [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4]
     }
 
     /// Centers each raw art row into the cell width (left-biased on odd padding), padding to
