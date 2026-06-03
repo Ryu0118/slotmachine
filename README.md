@@ -81,6 +81,10 @@ instead? `-n N` gives you N reels (1–10) that pay when they all match.
 reel — left to right — and it locks onto **whatever face is flying past at that
 exact instant**. That's the skill stop. That's the whole game.
 
+Like a real machine, **each reel is weighted differently**: the `7` is generous on
+the first reel and scarce on the last, so you'll line up two and watch the final
+reel come *so close* — the near-miss is by design, not bad luck.
+
 The eight faces: `7` (the one you're chasing), `BAR`, cherry, bell, plum, orange,
 grape, and diamond.
 

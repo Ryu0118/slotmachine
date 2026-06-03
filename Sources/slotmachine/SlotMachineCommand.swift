@@ -23,11 +23,12 @@ struct SlotMachineCommand: AsyncParsableCommand {
 
     mutating func run() async throws {
         guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
-        // Every face is equally likely. You stop the reels by hand and they land on whatever's
-        // showing; a non-TTY / piped run (no keyboard) stops the same strip at a random
-        // position. The config's symbol count is the same eight faces either way.
-        let theme = try SevenTheme.make()
-        let config = try makeConfig(symbolCount: theme.symbols.count)
+        // Each reel weights the 7 differently (generous first reel, scarce last), so the board
+        // is what a real machine shows. You stop the reels by hand and they land on whatever's
+        // showing on that reel; a non-TTY / piped run (no keyboard) stops each reel's strip at a
+        // random position. The column count decides how many per-lane strips the theme carries.
+        let config = try makeConfig(symbolCount: SevenTheme.symbolCount)
+        let theme = try SevenTheme.make(laneCount: config.cols)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
         // On a real terminal the reels need room to scroll; rather than silently degrade to a
         // one-line verdict, tell the player to enlarge the window and exit. A piped / non-TTY
@@ -42,8 +43,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
         }
         let animated = OutputMode.shouldAnimate(forcePlain: !fits(config, theme: theme))
 
-        let strip = SevenTheme.stripIndices(for: theme)
-        let context = SpinContext(config: config, paylines: paylines, theme: theme, strip: strip)
+        let strips = SevenTheme.laneStripIndices(laneCount: config.cols)
+        let context = SpinContext(config: config, paylines: paylines, theme: theme, strips: strips)
         let stats = animated
             ? await playAnimatedSession(context)
             : await playPlainSession(context)
@@ -57,10 +58,10 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let config: GridConfig
         let paylines: [Payline]
         let theme: SlotTheme
-        /// The reel strip as ``SlotTheme/symbols`` indices — what a non-TTY / piped run (no
-        /// keyboard) stops on at a random position. The same faces the reels scroll, so that
-        /// landing is a real reel stop too.
-        let strip: [Int]
+        /// The per-lane reel strips as ``SlotTheme/symbols`` indices — what a non-TTY / piped run
+        /// (no keyboard) stops each column on at a random position. The same strips the reels
+        /// scroll, so that landing is a real reel stop too, with the 7 weighted per reel.
+        let strips: [[Int]]
     }
 
     /// Plays the whole session animated. Opens the key reader ONCE (raw mode entered once) and
@@ -107,7 +108,7 @@ struct SlotMachineCommand: AsyncParsableCommand {
         SlotOdds.gridStops(
             rows: context.config.rows,
             cols: context.config.cols,
-            strip: context.strip,
+            strips: context.strips,
             seed: nil,
         )
     }
