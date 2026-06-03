@@ -38,7 +38,9 @@ enum SevenTheme {
             draft.win = seven
             draft.lose = bar
             draft.colorize = SlotColorizers.rainbow
-            draft.frameInterval = 0.08
+            // Reels scroll one art row per frame; at this interval a face slides past fast
+            // enough that a hand stop can't easily catch the 7 (a real skill stop).
+            draft.frameInterval = 0.03
             // The gate (keypress / timer) controls when each reel stops, so no minimum spin —
             // otherwise a reel would keep spinning for minSpin after it is released.
             draft.minSpin = 0
