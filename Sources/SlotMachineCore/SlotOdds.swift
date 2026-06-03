@@ -1,83 +1,49 @@
-/// The deterministic draw at the heart of a spin.
+/// The deterministic reel-stop draw at the heart of a spin.
 ///
-/// `plan` decides, **up front and sequentially**, which symbol every reel lands on. The
-/// outcome is fixed before any reel animates, so a `seed` reproduces a spin exactly
-/// regardless of the concurrent reveal order in the animation layer. This is the pure,
-/// dependency-free seam the tests pin against.
+/// A reel is a strip of faces. Stopping it lands on whatever face is showing — and because the
+/// cells of a column are *consecutive* positions on that strip, a column lands on `rows` adjacent
+/// strip faces. The draw picks one stop position per column, up front and seedably, so `--seed`
+/// reproduces a spin exactly and the landed board is always something the spinning reel could
+/// actually show (no impossible vertical triples on a strip of distinct faces).
 public enum SlotOdds {
-    /// Draws a landing symbol index for each of `reels`, weighted by `weights`.
-    ///
-    /// Each reel independently draws a value in `[0, 1)` and maps it through the cumulative
-    /// distribution of `weights`, so symbol `i` is chosen with probability `weights[i]`
-    /// (the weights should sum to 1). With a `seed` the sequence is reproducible; without
-    /// one it uses the system generator.
+    /// Draws a stop position for each of `reels` columns: a uniform index into a strip of
+    /// `stripLength` faces. With a `seed` the sequence is reproducible; without one it uses the
+    /// system generator.
     ///
     /// - Parameters:
-    ///   - reels: how many indices to draw (one per reel).
-    ///   - weights: per-symbol probabilities; index 0 is the jackpot symbol.
+    ///   - reels: how many stop positions to draw (one per column).
+    ///   - stripLength: the number of positions on the reel strip.
     ///   - seed: an optional seed for a reproducible draw.
-    /// - Returns: `reels` symbol indices into the weight table.
-    public static func plan(reels: Int, weights: [Double], seed: UInt64?) -> [Int] {
+    /// - Returns: `reels` stop positions in `0 ..< stripLength`.
+    public static func stops(reels: Int, stripLength: Int, seed: UInt64?) -> [Int] {
+        guard stripLength > 0 else { return Array(repeating: 0, count: reels) }
         if let seed {
             var generator = SeededRNG(seed: seed)
-            return draw(reels: reels, weights: weights, using: &generator)
+            return draw(reels: reels, stripLength: stripLength, using: &generator)
         }
         var generator = SystemRandomNumberGenerator()
-        return draw(reels: reels, weights: weights, using: &generator)
+        return draw(reels: reels, stripLength: stripLength, using: &generator)
     }
 
-    /// Draws a `cols × rows` grid: one weighted index per cell, returned **column by column**
-    /// (each inner array is a column's `rows` cells, top to bottom). Like ``plan(reels:weights:seed:)``
-    /// the draw is up front and seedable, so `--seed` reproduces the whole grid exactly.
-    public static func gridPlan(rows: Int, cols: Int, weights: [Double], seed: UInt64?) -> [[Int]] {
-        let flat = plan(reels: rows * cols, weights: weights, seed: seed)
-        return (0 ..< cols).map { col in Array(flat[(col * rows) ..< (col * rows + rows)]) }
-    }
-
-    /// Builds a spinning pool (a list of symbol indices to scroll through) where the jackpot
-    /// symbol (index 0) appears about `jackpotOdds` of the time and the other symbols share the
-    /// rest evenly. Stopping at a random instant then lands on the jackpot with probability
-    /// ≈ `jackpotOdds` — the skill-stop's odds live in the pool, not an up-front draw. The pool
-    /// is interleaved (not blocked) so the jackpot is spread across the spin, and contains every
-    /// symbol at least once.
-    public static func weightedPool(symbolCount: Int, jackpotOdds: Double, length: Int) -> [Int] {
-        guard symbolCount >= 2, length >= symbolCount else {
-            return Array(0 ..< max(symbolCount, 1))
+    /// Draws a `cols × rows` grid of landed face indices by stopping each column on the shared
+    /// `strip` (a list of face indices) at a uniform position, then reading the `rows`
+    /// consecutive strip faces under the window (wrapping at the end). Returned **column by
+    /// column** (each inner array is a column's `rows` cells, top to bottom). The draw is up
+    /// front and seedable, so `--seed` reproduces the whole grid exactly — and every column is a
+    /// real reel position, so the board is always something the reel could show.
+    public static func gridStops(rows: Int, cols: Int, strip: [Int], seed: UInt64?) -> [[Int]] {
+        let length = strip.count
+        let positions = stops(reels: cols, stripLength: length, seed: seed)
+        return positions.map { stop in
+            (0 ..< rows).map { row in strip[(stop + row) % length] }
         }
-        let others = symbolCount - 1
-        let jackpots = max(1, min(length - others, Int((Double(length) * jackpotOdds).rounded())))
-        var pool: [Int] = []
-        var otherCursor = 0
-        for slot in 0 ..< length {
-            // A slot is a jackpot when it crosses one of `jackpots` evenly-spaced boundaries;
-            // the gaps cycle through the other symbols so every face appears.
-            if (slot * jackpots) / length != ((slot + 1) * jackpots) / length {
-                pool.append(0)
-            } else {
-                pool.append(1 + (otherCursor % others))
-                otherCursor += 1
-            }
-        }
-        return pool
     }
 
     private static func draw(
         reels: Int,
-        weights: [Double],
+        stripLength: Int,
         using generator: inout some RandomNumberGenerator,
     ) -> [Int] {
-        (0 ..< reels).map { _ in pick(weights: weights, using: &generator) }
-    }
-
-    /// Maps one `[0, 1)` draw through the cumulative distribution of `weights`. Falls back
-    /// to the last index if rounding leaves the draw just past the final boundary.
-    private static func pick(weights: [Double], using generator: inout some RandomNumberGenerator) -> Int {
-        let roll = Double.random(in: 0 ..< 1, using: &generator)
-        var cumulative = 0.0
-        for (index, weight) in weights.enumerated() {
-            cumulative += weight
-            if roll < cumulative { return index }
-        }
-        return weights.indices.last ?? 0
+        (0 ..< reels).map { _ in Int.random(in: 0 ..< stripLength, using: &generator) }
     }
 }
