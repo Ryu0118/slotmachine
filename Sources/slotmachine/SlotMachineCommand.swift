@@ -151,22 +151,22 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let gate = ReelGate()
         await dispatcher.beginGame(gate: gate, reelCount: config.cols)
         let hasNext = games > 1 && game < games - 1 && !autoNext
-        let result = await spinSkill(context: context, gate: gate, hold: hasNext ? holdForNext(dispatcher) : nil)
-        guard games > 1, game < games - 1 else { return result }
+        // Arm the advance window *now*, before the spin, so the instant the last reel stops the
+        // dispatcher hands the next press to it with no gap — a finale-time Enter advances rather
+        // than being dropped. A mash that's already over-pressing the reels rolls straight into
+        // this one press too (advancing immediately), which is the intended "mash to skip" path.
+        var hold: (@Sendable () async -> Void)?
+        if hasNext {
+            let advance = ReelGate()
+            await dispatcher.armNext(gate: advance)
+            hold = { await advance.awaitTurn(0) }
+        }
+        let result = await spinSkill(context: context, gate: gate, hold: hold)
+        guard hasNext else { return result }
         // Redraw the next game over this one so the session plays in place instead of scrolling.
         let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
         emit("\u{1B}[\(gridLines)A")
         return result
-    }
-
-    /// A finale-hold closure that ends on the next Enter/Space — a one-key dispatcher window
-    /// (the reel-stop mechanism, reused). The win keeps flashing until the player presses on.
-    private func holdForNext(_ dispatcher: KeyDispatcher) -> @Sendable () async -> Void {
-        {
-            let advance = ReelGate()
-            await dispatcher.beginGame(gate: advance, reelCount: 1)
-            await advance.awaitTurn(0)
-        }
     }
 
     private func spinSkill(
