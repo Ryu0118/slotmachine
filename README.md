@@ -6,7 +6,8 @@ Reels rip down the screen. You smash each one dead with a key. Three `7`s line
 up on any **row or diagonal** and it blows up in your face. No timer. No
 autoplay. No mercy. Just you, your thumb, and one more pull:
 
-<img width="259" height="326" alt="スクリーンショット 2026-06-03 23 18 42" src="https://github.com/user-attachments/assets/71b7d582-7786-4f88-afae-21bb02f5663c" />
+<img width="251" height="338" alt="スクリーンショット 2026-06-03 23 37 11" src="https://github.com/user-attachments/assets/185270f5-9e58-42ed-9a7e-c22c7561bb68" />
+
 
 
 ## Install it. Right now.
