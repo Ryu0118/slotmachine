@@ -1,10 +1,11 @@
 # 🎰 slotmachine
 
-**A real slot machine. In your terminal.**
+**Pull the lever. Stop the reels yourself. Chase the `7`.**
 
-The reels actually *scroll* — faces flying down the window like the machine on the
-casino floor. You stop them **yourself**, by hand, key by key. Catch the `7`s and
-the screen goes off.
+A real slot machine, right in your terminal — and the reels actually *scroll*,
+faces flying down the window like the machine on the casino floor. No timer, no
+autoplay: you slam each reel to a halt by hand, key by key, and pray it lands on
+the `7`. Catch three and the screen goes off.
 
 ```
 ╔════════╗╔════════╗╔════════╗
@@ -27,27 +28,28 @@ the screen goes off.
 ╚════════╝╚════════╝╚════════╝
 ```
 
-Line the `7`s up — across any **row** or **diagonal** — and you hit it:
+Line the `7`s up — across any **row** or **diagonal** — and you hit it. Here a
+diagonal of `7`s pays:
 
 ```
 ╔════════╗╔════════╗╔════════╗
-║ ██████ ║║ ██████ ║║ ██████ ║
-║    ██  ║║    ██  ║║    ██  ║
-║    ██  ║║    ██  ║║    ██  ║
-║   ██   ║║   ██   ║║   ██   ║
-║   ██   ║║   ██   ║║   ██   ║
+║ ██████ ║║   __   ║║  o o   ║
+║    ██  ║║  /  \  ║║ o o o  ║
+║    ██  ║║ |    | ║║  o o   ║
+║   ██   ║║  \__/  ║║   o    ║
+║   ██   ║║        ║║        ║
 ╠════════╣╠════════╣╠════════╣
-║ ██████ ║║ ██████ ║║ ██████ ║
-║    ██  ║║    ██  ║║    ██  ║
-║    ██  ║║    ██  ║║    ██  ║
-║   ██   ║║   ██   ║║   ██   ║
-║   ██   ║║   ██   ║║   ██   ║
+║  .--.  ║║ ██████ ║║  /\    ║
+║ / XX \ ║║    ██  ║║ /  \   ║
+║ \ XX / ║║    ██  ║║<    >  ║
+║  '--'  ║║   ██   ║║ \  /   ║
+║        ║║   ██   ║║  \/    ║
 ╠════════╣╠════════╣╠════════╣
-║ ██████ ║║ ██████ ║║ ██████ ║
-║    ██  ║║    ██  ║║    ██  ║
-║    ██  ║║    ██  ║║    ██  ║
-║   ██   ║║   ██   ║║   ██   ║
-║   ██   ║║   ██   ║║   ██   ║
+║  ▄▄    ║║  .--.  ║║ ██████ ║
+║ ▟██▙   ║║ / XX \ ║║    ██  ║
+║ ████   ║║ \ XX / ║║    ██  ║
+║ ████   ║║  '--'  ║║   ██   ║
+║  ▀▀    ║║        ║║   ██   ║
 ╚════════╝╚════════╝╚════════╝
         🎰  J A C K P O T !  🎰
 ```
@@ -100,7 +102,7 @@ up the more you win:
 ║ Games: 5                         ║
 ║ Wins: 3  (60%)                   ║
 ║ Win rate ████████░░░░░░ 60%      ║
-║ Jackpots: 3  ★ JACKPOT ★        ║
+║ Jackpots: 3  ★ JACKPOT ★         ║
 ║ Jackpot rate ████████░░░░░░ 60%  ║
 ║ Best streak: 2 🔥🔥              ║
 ║ Total lines: 3                   ║
