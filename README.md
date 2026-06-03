@@ -1,11 +1,10 @@
 # 🎰 slotmachine
 
-**Pull the lever. Stop the reels yourself. Chase the `7`.**
+### 🎰 A terminal slot machine for dopamine kids.
 
-A real slot machine, right in your terminal — and the reels actually *scroll*,
-faces flying down the window like the machine on the casino floor. No timer, no
-autoplay: you slam each reel to a halt by hand, key by key. Line the `7`s up across
-any **row** or **diagonal** and you hit it:
+Reels rip down the screen. You smash each one dead with a key. Three `7`s line
+up — **row, diagonal, whatever** — and it blows up in your face. No timer. No
+autoplay. No mercy. Just you, your thumb, and one more pull:
 
 ```
 ╔════════╗╔════════╗╔════════╗
