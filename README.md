@@ -116,7 +116,6 @@ streak counter, a blinking ★ when you hit the big one. Pure dopamine.
 slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
 slotmachine -n 7            # a single row of 7 reels — chase 7777777
 slotmachine --games 10      # 10 games back to back, then the stats panel
-slotmachine --silent        # no animation, just the result
 ```
 
 By default you get the **3×3 board** — it pays along any of its three rows or two
@@ -136,8 +135,7 @@ diamond.
 |------|---------|
 | `-n`, `--reels` | Play a single row of N reels, 1–10 (default: the 3×3 board) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
-| `--seed` | Seed for a reproducible spin (silent mode) |
-| `--silent`, `--plain` | Disable the animation; print the result only |
+| `--seed` | Seed for a reproducible spin (piped / non-interactive runs) |
 | `--version` | Print the version |
 
 ## Terminal too small?

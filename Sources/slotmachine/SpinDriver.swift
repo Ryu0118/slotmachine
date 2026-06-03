@@ -4,7 +4,7 @@ import SlotMachineCore
 
 /// Drives a spin: builds the reels behind a ``ReelGate`` and advances the gate by keypress, so
 /// columns stop one after another, left to right. The hand path lands each column on the face
-/// showing at the keypress; the silent (non-animated) path settles its drawn cells up front.
+/// showing at the keypress; the non-animated (piped / non-TTY) path settles its cells up front.
 enum SpinDriver {
     /// Columns with no gate — each immediately returns its drawn cells. For the plain
     /// (non-animated) grid path.

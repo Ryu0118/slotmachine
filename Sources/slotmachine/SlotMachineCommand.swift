@@ -18,24 +18,21 @@ struct SlotMachineCommand: AsyncParsableCommand {
     )
     var reels: Int?
 
-    @Option(name: .customLong("seed"), help: "Seed for a reproducible spin (silent mode).")
+    @Option(name: .customLong("seed"), help: "Seed for a reproducible spin (piped / non-interactive runs).")
     var seed: UInt64?
 
     @Option(name: .customLong("games"), help: "How many games to play in a row; prints session stats at the end.")
     var games = 1
 
-    @Flag(name: [.customLong("silent"), .customLong("plain")], help: "Disable the animation; print the result only.")
-    var silent = false
-
     mutating func run() async throws {
         guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
         // Every face is equally likely. You stop the reels by hand and they land on whatever's
-        // showing; silent mode (no keyboard) stops the same strip at a random position. The
-        // config's symbol count is the same eight faces either way.
+        // showing; a non-TTY / piped run (no keyboard) stops the same strip at a random
+        // position. The config's symbol count is the same eight faces either way.
         let theme = try SevenTheme.make()
         let config = try makeConfig(symbolCount: theme.symbols.count)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
-        let animated = OutputMode.shouldAnimate(forcePlain: silent || !fits(config, theme: theme))
+        let animated = OutputMode.shouldAnimate(forcePlain: !fits(config, theme: theme))
 
         let strip = SevenTheme.stripIndices(for: theme)
         let context = SpinContext(config: config, paylines: paylines, theme: theme, strip: strip)
@@ -52,9 +49,9 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let config: GridConfig
         let paylines: [Payline]
         let theme: SlotTheme
-        /// The reel strip as ``SlotTheme/symbols`` indices — what the silent (no-keyboard) draw
-        /// stops on at a random position. The same faces the reels scroll, so a silent landing
-        /// is a real reel stop too.
+        /// The reel strip as ``SlotTheme/symbols`` indices — what a non-TTY / piped run (no
+        /// keyboard) stops on at a random position. The same faces the reels scroll, so that
+        /// landing is a real reel stop too.
         let strip: [Int]
     }
 
@@ -135,8 +132,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return await spin
     }
 
-    /// The seed for game `game`: derived from `--seed` so a silent session is reproducible yet
-    /// every game differs; `nil` when no seed was given (each game uses the system generator).
+    /// The seed for game `game`: derived from `--seed` so a piped / non-interactive session is
+    /// reproducible yet every game differs; `nil` when no seed was given (system generator).
     private func gameSeed(_ game: Int) -> UInt64? {
         seed.map { $0 &+ UInt64(game) }
     }
