@@ -32,10 +32,20 @@ public enum SlotOdds {
     /// front and seedable, so `--seed` reproduces the whole grid exactly — and every column is a
     /// real reel position, so the board is always something the reel could show.
     public static func gridStops(rows: Int, cols: Int, strip: [Int], seed: UInt64?) -> [[Int]] {
-        let length = strip.count
-        let positions = stops(reels: cols, stripLength: length, seed: seed)
-        return positions.map { stop in
-            (0 ..< rows).map { row in strip[(stop + row) % length] }
+        gridStops(rows: rows, cols: cols, strips: Array(repeating: strip, count: cols), seed: seed)
+    }
+
+    /// Draws a `cols × rows` grid where each column stops on **its own** strip — so a reel can
+    /// weight a symbol differently from its neighbours (a real machine's per-reel design). Column
+    /// `col` stops on `strips[col % strips.count]` at a uniform position and reads the `rows`
+    /// consecutive faces under the window. Returned column by column. Seedable for reproducibility.
+    public static func gridStops(rows: Int, cols: Int, strips: [[Int]], seed: UInt64?) -> [[Int]] {
+        guard !strips.isEmpty else { return Array(repeating: Array(repeating: 0, count: rows), count: cols) }
+        var generator: any RandomNumberGenerator = seed.map { SeededRNG(seed: $0) } ?? SystemRandomNumberGenerator()
+        return (0 ..< cols).map { col in
+            let strip = strips[col % strips.count]
+            let stop = strip.isEmpty ? 0 : Int.random(in: 0 ..< strip.count, using: &generator)
+            return (0 ..< rows).map { row in strip.isEmpty ? 0 : strip[(stop + row) % strip.count] }
         }
     }
 

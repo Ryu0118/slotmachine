@@ -9,31 +9,36 @@ import SlotMachineCore
 /// hand-counted padding to get wrong. Eight reels still fit a 100-column terminal; wider
 /// grids fall back to plain when the window is too small. Index 0 is the `7`.
 enum SevenTheme {
+    /// How many distinct faces a cell can land on (the `symbols` count). Fixed by `faces`, so
+    /// the CLI can size the grid before building the theme.
+    static let symbolCount = faces.count
     private static let cellWidth = 8
     private static let cellHeight = 5
 
     private static let faces = [seven, bar, cherry, bell, plum, orange, grape, diamond]
 
-    /// The reel strip as ``SlotTheme/symbols`` indices: each spinning face mapped back to its
-    /// landing index (a face not among `symbols` maps to 0). This is exactly what a stop lands
-    /// on — the same mapping ``SlotMachine`` uses for a hand stop — so `--auto` and the hand
-    /// stop share one strip.
-    static func stripIndices(for theme: SlotTheme) -> [Int] {
-        theme.spinning.map { face in theme.symbols.firstIndex(of: face) ?? 0 }
+    /// The per-lane reel strips as ``SlotTheme/symbols`` indices — one strip per column, what a
+    /// stop lands on. The `7` (index 0) is weighted differently per reel like a real machine:
+    /// generous on the first reel, single and rare on the last (see ``laneStrip(_:of:)``), so
+    /// catching three `7`s takes the timing the final reel demands rather than a learnable knack.
+    static func laneStripIndices(laneCount: Int) -> [[Int]] {
+        (0 ..< max(laneCount, 1)).map { laneStrip($0, of: laneCount) }
     }
 
-    /// Builds the slot theme. The spinning strip is the eight faces, equally likely — a reel of
-    /// distinct faces. A hand stop lands on whatever's showing and `--auto` stops the same strip
-    /// at a random position, so the `7` is simply 1 in 8 per cell with no rigging. Throws
-    /// ``SlotThemeError`` only on malformed art (it isn't — ``symbol(_:)`` centers every row),
-    /// so callers can treat this as non-failing.
-    static func make() throws -> SlotTheme {
-        try SlotTheme.make { draft in
+    /// Builds the slot theme with per-lane reel strips for `laneCount` columns: the `7` is
+    /// weighted differently on each reel (generous first, scarce last) like a real machine, so a
+    /// hand stop lands on whatever's showing on that reel's strip. Throws ``SlotThemeError`` only
+    /// on malformed art (it isn't — ``symbol(_:)`` centers every row), so callers can treat this
+    /// as non-failing.
+    static func make(laneCount: Int) throws -> SlotTheme {
+        let strips = laneStripIndices(laneCount: laneCount).map { strip in strip.map { faces[$0] } }
+        return try SlotTheme.make { draft in
             draft.cellWidth = cellWidth
             draft.cellHeight = cellHeight
             draft.symbols = faces
             draft.jackpotIndex = 0
             draft.spinning = faces
+            draft.spinningStrips = strips
             // `win` / `lose` are unused by the symbol path but required by the validator.
             draft.win = seven
             draft.lose = bar
@@ -51,6 +56,24 @@ enum SevenTheme {
             draft.finale = SlotTheme.SlotFinale(frames: 10, interval: 0.1)
             draft.bust = SlotTheme.SlotFinale(frames: 6, interval: 0.18)
         }
+    }
+
+    /// The strip (as `symbols` indices) for lane `lane` of `laneCount`. The `7` (0) appears
+    /// twice on the first reel, once on the middle reels, and once on a long final reel — so its
+    /// per-cell chance is 1/3, 1/8, then 1/16. No `7` (and no face) is circularly adjacent to
+    /// itself, so a column can never show a vertical triple.
+    private static func laneStrip(_ lane: Int, of laneCount: Int) -> [Int] {
+        let isLast = lane == laneCount - 1
+        if lane == 0 {
+            // 7 twice, well spaced — the generous first reel (7 chance 1/3).
+            return [0, 1, 0, 2, 3, 4]
+        }
+        if isLast {
+            // One 7 on a long strip — the scarce final reel (7 chance 1/16), the near-miss gate.
+            return [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 2]
+        }
+        // The even eight faces — a middle reel (7 chance 1/8).
+        return [0, 1, 2, 3, 4, 5, 6, 7]
     }
 
     /// Centers each raw art row into the cell width (left-biased on odd padding), padding to

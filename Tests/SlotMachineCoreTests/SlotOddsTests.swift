@@ -89,4 +89,60 @@ struct SlotOddsTests {
         let rate = Double(jackpotCells) / Double(cells.count)
         #expect(abs(rate - 1.0 / Double(strip.count)) < 0.02)
     }
+
+    // MARK: - Per-lane strips (asymmetric reels)
+
+    /// Lane strips mirroring `SevenTheme`: the 7 (index 0) appears twice on lane 0, once on the
+    /// middle lane, once on a long final lane — so its per-cell rate is 1/3, 1/8, 1/16.
+    private static let laneStrips: [[Int]] = [
+        [0, 1, 0, 2, 3, 4], // lane 0: 7 twice (1/3)
+        [0, 1, 2, 3, 4, 5, 6, 7], // middle: 7 once (1/8)
+        [0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 2], // final: 7 once, long (1/16)
+    ]
+
+    @Test
+    func perLaneGridStopsIsSeedReproducible() {
+        let first = SlotOdds.gridStops(rows: 3, cols: 3, strips: Self.laneStrips, seed: 42)
+        let second = SlotOdds.gridStops(rows: 3, cols: 3, strips: Self.laneStrips, seed: 42)
+        #expect(first == second)
+    }
+
+    /// **Per-lane reel-consistency.** Every column is a consecutive window of ITS OWN lane strip
+    /// — so the asymmetric weighting still produces only boards a real reel could show.
+    @Test(arguments: 0 ..< 200)
+    func everyColumnIsAConsecutiveWindowOfItsLane(seed: Int) {
+        let rows = 3
+        let grid = SlotOdds.gridStops(rows: rows, cols: 3, strips: Self.laneStrips, seed: UInt64(seed))
+        for (col, column) in grid.enumerated() {
+            let strip = Self.laneStrips[col]
+            let matches = (0 ..< strip.count).contains { start in
+                (0 ..< rows).allSatisfy { row in column[row] == strip[(start + row) % strip.count] }
+            }
+            #expect(matches, "column \(col) \(column) is not a window of its lane strip")
+        }
+    }
+
+    /// No column is a vertical triple — each lane strip is circularly duplicate-free, so the
+    /// vertical-triple bug stays fixed under per-lane strips too.
+    @Test(arguments: 0 ..< 200)
+    func noPerLaneColumnIsAVerticalTriple(seed: Int) {
+        let grid = SlotOdds.gridStops(rows: 3, cols: 3, strips: Self.laneStrips, seed: UInt64(seed))
+        for column in grid {
+            #expect(Set(column).count > 1, "vertical triple \(column)")
+        }
+    }
+
+    /// **The asymmetry is real.** The 7 lands far more often on lane 0 than on the final lane —
+    /// each lane's per-cell 7 rate matches its strip (≈1/3, ≈1/8, ≈1/16), so the last reel
+    /// genuinely gates the jackpot.
+    @Test
+    func eachLaneHasItsOwnSevenRate() {
+        let runs = 6000
+        let grids = (0 ..< runs).map { SlotOdds.gridStops(rows: 3, cols: 3, strips: Self.laneStrips, seed: UInt64($0)) }
+        for (lane, expected) in [(0, 1.0 / 3.0), (1, 1.0 / 8.0), (2, 1.0 / 16.0)] {
+            let cells = grids.flatMap { $0[lane] }
+            let rate = Double(cells.count { $0 == 0 }) / Double(cells.count)
+            #expect(abs(rate - expected) < 0.02, "lane \(lane) 7 rate \(rate) ≉ \(expected)")
+        }
+    }
 }
