@@ -84,8 +84,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
     /// which routes it to the accepting game or drops it. Returns `.empty` so the task group is
     /// homogeneous; the real stats come from `playGames`.
     private func consumeKeys(_ keys: AsyncStream<UInt8>, into dispatcher: KeyDispatcher) async -> GameStats {
-        for await _ in keys {
-            await dispatcher.handle()
+        for await byte in keys {
+            await dispatcher.handle(byte)
         }
         return .empty
     }
