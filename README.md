@@ -135,7 +135,6 @@ diamond.
 |------|---------|
 | `-n`, `--reels` | Play a single row of N reels, 1–10 (default: the 3×3 board) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
-| `--seed` | Seed for a reproducible spin (piped / non-interactive runs) |
 | `--version` | Print the version |
 
 ## Terminal too small?

@@ -18,9 +18,6 @@ struct SlotMachineCommand: AsyncParsableCommand {
     )
     var reels: Int?
 
-    @Option(name: .customLong("seed"), help: "Seed for a reproducible spin (piped / non-interactive runs).")
-    var seed: UInt64?
-
     @Option(name: .customLong("games"), help: "How many games to play in a row; prints session stats at the end.")
     var games = 1
 
@@ -71,8 +68,8 @@ struct SlotMachineCommand: AsyncParsableCommand {
 
     private func playPlainSession(_ context: SpinContext) async -> GameStats {
         var stats = GameStats.empty
-        for game in 0 ..< games {
-            let drawn = drawnGrid(game: game, context: context)
+        for _ in 0 ..< games {
+            let drawn = drawnGrid(context: context)
             let result = await SlotMachine.spinGrid(
                 SpinDriver.immediateGridColumns(drawn: drawn),
                 rows: context.config.rows,
@@ -91,15 +88,16 @@ struct SlotMachineCommand: AsyncParsableCommand {
         GameOutcome(didWin: result.didWin, isJackpot: result.isJackpot, lineCount: result.winningLines.count)
     }
 
-    /// The auto-stop landing: stop each column at a random position on the same reel strip the
+    /// The non-TTY landing: stop each column at a random position on the same reel strip the
     /// reels scroll, so the board is always a real reel position (no impossible vertical
-    /// triples) and `--auto` shares one model with the hand stop.
-    private func drawnGrid(game: Int, context: SpinContext) -> [[Int]] {
+    /// triples). Used only when there's no keyboard to hand-stop with — a fresh random board
+    /// each play.
+    private func drawnGrid(context: SpinContext) -> [[Int]] {
         SlotOdds.gridStops(
             rows: context.config.rows,
             cols: context.config.cols,
             strip: context.strip,
-            seed: gameSeed(game),
+            seed: nil,
         )
     }
 
@@ -130,12 +128,6 @@ struct SlotMachineCommand: AsyncParsableCommand {
         )
         await drive(keys: keys, gate: gate, columnCount: context.config.cols)
         return await spin
-    }
-
-    /// The seed for game `game`: derived from `--seed` so a piped / non-interactive session is
-    /// reproducible yet every game differs; `nil` when no seed was given (system generator).
-    private func gameSeed(_ game: Int) -> UInt64? {
-        seed.map { $0 &+ UInt64(game) }
     }
 
     /// The 3×3 board is the default; `--reels N` switches to a single row of N reels.
