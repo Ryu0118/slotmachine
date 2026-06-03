@@ -29,6 +29,17 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let theme = try SevenTheme.make()
         let config = try makeConfig(symbolCount: theme.symbols.count)
         let paylines = config.rows == 1 ? [Payline.row(0)] : Payline.allLines(forSquare: config.rows)
+        // On a real terminal the reels need room to scroll; rather than silently degrade to a
+        // one-line verdict, tell the player to enlarge the window and exit. A piped / non-TTY
+        // run has no size to outgrow, so it keeps the plain draw.
+        if OutputMode.isInteractive, !fits(config, theme: theme) {
+            throw TerminalTooSmall(
+                neededColumns: config.requiredWidth(cellWidth: theme.cellWidth),
+                neededRows: config.requiredHeight(cellHeight: theme.cellHeight),
+                haveColumns: TerminalSize.columns,
+                haveRows: TerminalSize.rows,
+            )
+        }
         let animated = OutputMode.shouldAnimate(forcePlain: !fits(config, theme: theme))
 
         let strip = SevenTheme.stripIndices(for: theme)

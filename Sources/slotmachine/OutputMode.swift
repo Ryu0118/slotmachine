@@ -19,6 +19,13 @@ enum OutputMode {
         let environment = ProcessInfo.processInfo.environment
         if environment["NO_COLOR"] != nil { return false }
         if environment["TERM"] == "dumb" { return false }
-        return isatty(STDOUT_FILENO) != 0 && isatty(STDIN_FILENO) != 0
+        return isInteractive
+    }
+
+    /// `true` when both stdout and stdin are real terminals — i.e. there's a keyboard to
+    /// hand-stop with and a window to draw in. A piped/redirected run is not interactive and
+    /// must never be treated as a too-small terminal (it has no size to outgrow).
+    static var isInteractive: Bool {
+        isatty(STDOUT_FILENO) != 0 && isatty(STDIN_FILENO) != 0
     }
 }

@@ -119,9 +119,11 @@ diamond.
 
 ## Terminal too small?
 
-The animated grid needs `(cell_width + 2) × columns` columns and a matching number
-of rows. When the terminal is too small in either dimension, `slotmachine` falls
-back to the plain result line so the animation never wraps and tears.
+The reels need room to scroll — `(cell_width + 2) × columns` columns and a matching
+number of rows. If your terminal is too small for that, `slotmachine` tells you the
+size it needs and exits (code `1`) instead of cramming a torn animation into the
+window. Make it bigger and run it again. (A piped or non-interactive run has no
+window to outgrow, so it just prints the plain result.)
 
 ## License
 
