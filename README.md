@@ -1,32 +1,45 @@
 # 🎰 slotmachine
 
-A terminal slot machine with real slot-machine odds. Spin a row of reels — or a
-3×3 grid that pays on rows and diagonals — and chase the `7`s. Built on
-[SlotKit](https://github.com/Ryu0118/SlotKit).
+**A real slot machine. In your terminal. With real odds.**
+
+The reels actually *scroll* — faces flying down the window like the machine on the
+casino floor. You stop them **yourself**, by hand, key by key. And the `7` only
+flashes past one time in ten… so landing it is all you.
 
 ```
-╔══════╗╔══════╗╔══════╗
-║██████║║██████║║██████║
-║   ██ ║║   ██ ║║   ██ ║
-║  ██  ║║  ██  ║║  ██  ║
-║ ██   ║║ ██   ║║ ██   ║
-║ ██   ║║ ██   ║║ ██   ║
-╚══════╝╚══════╝╚══════╝
-🎰 JACKPOT! 🎰
+╔════════╗╔════════╗╔════════╗
+║   ▄▄   ║║  ████  ║║  o o   ║   ← the reels are
+║  ▟██▙  ║║  ████  ║║   o    ║      flying right now,
+║  ████  ║║   ▀▀   ║║        ║      each one at its
+║  ████  ║║   __   ║║   /\   ║      own speed
+║   ▀▀   ║║  /  \  ║║  /  \  ║
+╚════════╝╚════════╝╚════════╝
+        smash ⏎ to stop the next reel →
 ```
 
-Every reel scrolls its faces vertically — like a real machine — and lands on a
-face. Line them all up to win; line up the `7`s for the jackpot. The odds are
-real — by default a `7` lands on a reel one time in ten, so a 3-reel jackpot is
-1 in 1,000.
+Catch three `7`s and the screen goes off:
 
-## Install
+```
+╔════════╗╔════════╗╔════════╗
+║ ██████ ║║ ██████ ║║ ██████ ║
+║    ██  ║║    ██  ║║    ██  ║
+║    ██  ║║    ██  ║║    ██  ║
+║   ██   ║║   ██   ║║   ██   ║
+║   ██   ║║   ██   ║║   ██   ║
+╚════════╝╚════════╝╚════════╝
+        🎰  J A C K P O T !  🎰
+```
+
+## Install it. Right now.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ryu0118/slotmachine/main/install.sh | bash
 ```
 
-### Other methods
+Then just type `slotmachine`. That's it. Go chase a `7`.
+
+<details>
+<summary>Other ways to install</summary>
 
 #### Nest ([mtj0928/nest](https://github.com/mtj0928/nest))
 
@@ -51,38 +64,69 @@ swift build -c release
 cp .build/release/slotmachine /usr/local/bin/
 ```
 
-## Usage
+</details>
 
-```bash
-slotmachine                 # single row of 3 reels; press a key to stop each in turn
-slotmachine -n 7            # 7 reels — chase 7777777
-slotmachine --grid          # a 3×3 machine that pays on rows AND diagonals
-slotmachine --games 10      # play 10 games back to back, then session stats
-slotmachine --auto          # press once, then the reels stop on their own
-slotmachine --odds 0.5      # easier: a 7 lands half the time
-slotmachine --seed 42       # reproducible spin
-slotmachine --silent        # no animation, print the result line only
+## The hit you came for
+
+Play a run of games and the screen rewards you for it — a stats panel that lights
+up the more you win:
+
+```
+╔══════════════════════════════════╗
+║🎰  S E S S I O N   S T A T S  🎰 ║
+╠══════════════════════════════════╣
+║ Games: 5                         ║
+║ Wins: 3  (60%)                   ║
+║ Win rate ████████░░░░░░ 60%      ║
+║ Jackpots: 3  ★ JACKPOT ★        ║
+║ Jackpot rate ████████░░░░░░ 60%  ║
+║ Best streak: 2 🔥🔥              ║
+║ Total lines: 3                   ║
+╚══════════════════════════════════╝
 ```
 
-On a terminal you **stop the reels yourself** — a real skill stop. Press any key
-(Enter, Space, …) to stop the next reel (or column), left to right, and it lands on
-**whatever's spinning by at that instant**. A `7` only scrolls past about `--odds`
-of the time, so catching one is genuinely hard.
+A rainbow title, a green bar that fills as you win, a gold jackpot rate, a 🔥
+streak counter, a blinking ★ when you hit the big one. Pure dopamine.
 
-With `--auto` the reels stop on their own — and because a fixed interval can't
-"aim", auto draws each outcome up front at the configured odds (so it still wins at
-the right rate instead of never).
+## How to play
 
-`--games N` plays `N` games in a row and ends with a **session stats** panel:
-games, wins and win rate, jackpots, your best streak, and total lines, with a
-win-rate bar that lights up. You still stop each game yourself by keypress — add
-`--auto` to let them run hands-free. With `--seed` the whole session is
-reproducible (each game still differs).
+```bash
+slotmachine                 # 3 reels — smash ⏎ to stop each one in turn
+slotmachine -n 7            # 7 reels — chase 7777777
+slotmachine --grid          # a 3×3 board: rows AND diagonals pay
+slotmachine --games 10      # 10 games back to back, then the stats panel
+slotmachine --auto          # hands free — one press, the reels stop themselves
+slotmachine --odds 0.5      # crank the luck: a 7 lands half the time
+slotmachine --seed 42       # reproducible run
+slotmachine --silent        # no animation, just the result
+```
 
-A single row (`--reels`) pays when every reel matches. The `--grid` board is a 3×3
-machine that pays along any of its three rows or two diagonals — line up the `7`s
-on any line for the jackpot. The eight faces are `7` (the jackpot), `BAR`, cherry,
-bell, plum, orange, grape, and diamond.
+**You stop the reels yourself.** Hit any key (Enter, Space, …) to slam the next
+reel — left to right — and it locks onto **whatever face is flying past at that
+exact instant**. The `7` only scrolls by about `--odds` of the time, so catching
+one is pure timing and nerve. That's the skill stop. That's the whole game.
+
+Too fast? Hit `--auto` and let the machine stop itself — it still wins at the real
+rate (it draws each outcome up front so a fixed timer can't cheat the odds).
+
+## The odds are real
+
+By default a `7` lands on a reel **one time in ten**. So:
+
+| You're chasing | The odds |
+|----------------|----------|
+| 3 in a row (`slotmachine`) | 1 in 1,000 |
+| 7 in a row (`-n 7`) | 1 in 10 million |
+| a 3×3 board (`--grid`) | rows *and* both diagonals can pay |
+| 9 in a row (`-n 9`) | about 1 in a **billion** |
+
+That's a real machine — it's *meant* to almost never line up. Want a softer ride?
+`--odds 0.5` drops the bar and the `7`s rain down.
+
+The eight faces: `7` (the jackpot), `BAR`, cherry, bell, plum, orange, grape, and
+diamond.
+
+## Every flag
 
 | Flag | Meaning |
 |------|---------|
@@ -95,17 +139,7 @@ bell, plum, orange, grape, and diamond.
 | `--silent`, `--plain` | Disable the animation; print the result only |
 | `--version` | Print the version |
 
-A full line of `7`s has probability `odds^length`, so longer lines get rare fast —
-at the default odds, nine `7`s (`--reels 9`) is about 1 in a billion. That's a
-real slot machine; it's meant to almost never line up. Lower the bar with `--odds`.
-
-## Terminal size
-
-The animated grid needs `(cell_width + 2) × columns` columns and a matching number
-of rows. When the terminal is too small in either dimension, `slotmachine` falls
-back to the plain result line so the animation never wraps and tears.
-
-## How the odds work
+## How the odds actually work
 
 `--odds` is the chance the `7` shows on a cell (it means *probability*, 0–1 — not an
 odd number).
@@ -117,6 +151,12 @@ odd number).
 - **`--auto`**: the whole grid is drawn up front at `--odds`, then revealed on a timer —
   a fixed interval can't aim, so drawing up front keeps the win rate honest. `--seed`
   reproduces an auto session exactly.
+
+## Terminal too small?
+
+The animated grid needs `(cell_width + 2) × columns` columns and a matching number
+of rows. When the terminal is too small in either dimension, `slotmachine` falls
+back to the plain result line so the animation never wraps and tears.
 
 ## License
 
