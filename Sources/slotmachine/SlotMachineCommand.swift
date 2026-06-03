@@ -162,9 +162,13 @@ struct SlotMachineCommand: AsyncParsableCommand {
     /// A finale-hold closure that ends on the next Enter/Space — a one-key dispatcher window
     /// (the reel-stop mechanism, reused). The win keeps flashing until the player presses on.
     private func holdForNext(_ dispatcher: KeyDispatcher) -> @Sendable () async -> Void {
-        {
+        let emit = emit
+        return {
             let advance = ReelGate()
             await dispatcher.beginGame(gate: advance, reelCount: 1)
+            // Cue the player that the game is now *waiting*, not still stopping — so they press
+            // once (and land in the open window) instead of mashing into the dropped tail.
+            emit("\n  press ⏎ for the next game\n")
             await advance.awaitTurn(0)
         }
     }
