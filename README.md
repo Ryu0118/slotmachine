@@ -22,8 +22,32 @@ time in ten, so a 3-reel jackpot is 1 in 1,000.
 ## Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/slotmachine/main/install.sh | bash
+```
+
+### Other methods
+
+#### Nest ([mtj0928/nest](https://github.com/mtj0928/nest))
+
+```bash
+nest install Ryu0118/slotmachine
+```
+
+#### Mise ([jdx/mise](https://github.com/jdx/mise))
+
+```bash
+mise use -g ubi:Ryu0118/slotmachine
+```
+
+#### Build from source
+
+Requires Swift 6.2+:
+
+```bash
+git clone https://github.com/Ryu0118/slotmachine
+cd slotmachine
 swift build -c release
-.build/release/slotmachine
+cp .build/release/slotmachine /usr/local/bin/
 ```
 
 ## Usage
