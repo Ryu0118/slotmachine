@@ -65,17 +65,40 @@ struct SlotMachineCommand: AsyncParsableCommand {
     }
 
     /// Plays the whole session animated. Opens the key reader ONCE (raw mode entered once) and
-    /// threads the key stream through every game — so the first reel never needs an extra
-    /// press, and a 10-game run shares one keyboard.
+    /// runs a single consumer over the key stream for the whole session: a ``KeyDispatcher``
+    /// routes each press to the game that's currently accepting and drops the rest, so keys
+    /// mashed during the finale flash don't bleed into the next game.
     private func playAnimatedSession(_ context: SpinContext) async -> GameStats {
         await KeyReader.withKeys { keys in
-            var stats = GameStats.empty
-            for game in 0 ..< games {
-                let result = await animateGame(game: game, context: context, keys: keys)
-                stats = stats.recording(outcome(result))
+            let dispatcher = KeyDispatcher()
+            return await withTaskGroup(of: GameStats.self) { group in
+                group.addTask { await consumeKeys(keys, into: dispatcher) }
+                let stats = await playGames(context, dispatcher: dispatcher)
+                group.cancelAll() // stop the consumer; raw mode is restored by withKeys
+                return stats
             }
-            return stats
         }
+    }
+
+    /// The single consumer of the session's key stream: every press goes through `dispatcher`,
+    /// which routes it to the accepting game or drops it. Returns `.empty` so the task group is
+    /// homogeneous; the real stats come from `playGames`.
+    private func consumeKeys(_ keys: AsyncStream<UInt8>, into dispatcher: KeyDispatcher) async -> GameStats {
+        for await _ in keys {
+            await dispatcher.handle()
+        }
+        return .empty
+    }
+
+    /// Plays every game in the session, recording stats. Each game opens its own accepting window
+    /// on the dispatcher, so finale-time keys between games are dropped.
+    private func playGames(_ context: SpinContext, dispatcher: KeyDispatcher) async -> GameStats {
+        var stats = GameStats.empty
+        for game in 0 ..< games {
+            let result = await animateGame(game: game, context: context, dispatcher: dispatcher)
+            stats = stats.recording(outcome(result))
+        }
+        return stats
     }
 
     private func playPlainSession(_ context: SpinContext) async -> GameStats {
@@ -114,12 +137,14 @@ struct SlotMachineCommand: AsyncParsableCommand {
     }
 
     /// Animates one game: you skill-stop each column by hand (land on the showing face) via
-    /// `spinGridSkill`. In a multi-game session it prints no per-game line and redraws the next
-    /// game over this one.
-    private func animateGame(game: Int, context: SpinContext, keys: AsyncStream<UInt8>) async -> GridSpinResult {
+    /// `spinGridSkill`. Opens this game's accepting window on the dispatcher so its keys advance
+    /// this game's gate; keys pressed during the previous game's finale were already dropped. In
+    /// a multi-game session it prints no per-game line and redraws the next game over this one.
+    private func animateGame(game: Int, context: SpinContext, dispatcher: KeyDispatcher) async -> GridSpinResult {
         let config = context.config
         let gate = ReelGate()
-        let result = await spinSkill(context: context, gate: gate, keys: keys)
+        await dispatcher.beginGame(gate: gate, reelCount: config.cols)
+        let result = await spinSkill(context: context, gate: gate)
         // A multi-game session prints no per-game line — only the closing stats. Redraw the
         // next game over this one so the session plays in place instead of scrolling away.
         if games > 1, game < games - 1 {
@@ -129,17 +154,15 @@ struct SlotMachineCommand: AsyncParsableCommand {
         return result
     }
 
-    private func spinSkill(context: SpinContext, gate: ReelGate, keys: AsyncStream<UInt8>) async -> GridSpinResult {
+    private func spinSkill(context: SpinContext, gate: ReelGate) async -> GridSpinResult {
         let columns = SpinDriver.skillColumns(count: context.config.cols, gate: gate)
-        async let spin: GridSpinResult = SlotMachine.spinGridSkill(
+        return await SlotMachine.spinGridSkill(
             columns,
             rows: context.config.rows,
             paylines: context.paylines,
             theme: context.theme,
             plain: false,
         )
-        await drive(keys: keys, gate: gate, columnCount: context.config.cols)
-        return await spin
     }
 
     /// The 3×3 board is the default; `--reels N` switches to a single row of N reels.
@@ -156,11 +179,6 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let wideEnough = (TerminalSize.columns ?? .max) >= config.requiredWidth(cellWidth: theme.cellWidth)
         let tallEnough = (TerminalSize.rows ?? .max) >= config.requiredHeight(cellHeight: theme.cellHeight)
         return wideEnough && tallEnough
-    }
-
-    /// Releases each column on a keypress, left to right — the hand stop.
-    private func drive(keys: AsyncStream<UInt8>, gate: ReelGate, columnCount: Int) async {
-        await SpinDriver.driveByKeys(keys, gate: gate, reelCount: columnCount)
     }
 
     /// A single game's one-line verdict.

@@ -6,4 +6,4 @@ rules:
   doc: README.md
   message: "CLI flags or the reel/range rules changed \u2014 update README (How to
     play / Every flag)."
-  checksum: fc27b30e09bb89050ad1968ec54b49a15dd176ecf08a30fbf29278289abd1193
+  checksum: 34b6d9e82d23a069c6513d1a9a31f0637f5b24d7f35ae81bc50a788e8d4378e7

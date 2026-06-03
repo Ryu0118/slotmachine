@@ -20,17 +20,4 @@ enum SpinDriver {
             SkillReel { await gate.awaitTurn(index) }
         }
     }
-
-    /// Advances the gate once per keypress, releasing reels left to right. Returns when every
-    /// reel has been released (so the caller can stop reading keys). Ignores which key — any
-    /// press (Enter, Space, …) stops the next reel.
-    static func driveByKeys(_ keys: AsyncStream<UInt8>, gate: ReelGate, reelCount: Int) async {
-        guard reelCount > 0 else { return }
-        var released = 0
-        for await _ in keys {
-            await gate.advance()
-            released += 1
-            if released >= reelCount { return }
-        }
-    }
 }
