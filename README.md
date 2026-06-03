@@ -3,7 +3,7 @@
 ### 🎰 A terminal slot machine for dopamine kids.
 
 Reels rip down the screen. You smash each one dead with a key. Three `7`s line
-up — **row, diagonal, whatever** — and it blows up in your face. No timer. No
+up on any **row or diagonal** and it blows up in your face. No timer. No
 autoplay. No mercy. Just you, your thumb, and one more pull:
 
 ```
@@ -67,27 +67,27 @@ cp .build/release/slotmachine /usr/local/bin/
 ## How to play
 
 ```bash
-slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
-slotmachine -n 7            # a single row of 7 reels — chase 7777777
-slotmachine --games 10      # 10 games — press a key between each, then session stats
+slotmachine                 # the 3×3 board: smash ⏎ to stop each reel in turn
+slotmachine -n 7            # a single row of 7 reels: chase 7777777
+slotmachine --games 10      # 10 games: press a key between each, then session stats
 slotmachine --games 10 --auto-next   # …or roll straight into each next game
 ```
 
-By default you get the **3×3 board** — it pays along any of its three rows or two
+By default you get the **3×3 board**. It pays along any of its three rows or two
 diagonals. Line up the `7`s on any of those and you win big. Want a single row
 instead? `-n N` gives you N reels (1–10) that pay when they all match.
 
-**You stop the reels yourself.** Hit **Enter or Space** to slam the next reel —
-left to right — and it locks onto **whatever face is flying past at that exact
+**You stop the reels yourself.** Hit **Enter or Space** to slam the next reel,
+left to right, and it locks onto **whatever face is flying past at that exact
 instant**. That's the skill stop. That's the whole game.
 
 Playing a run with `--games`? A win **keeps flashing** until you press Enter or
-Space for the next game — so you can savour the hit — and a miss holds its board
+Space for the next game, so you can savour the hit, and a miss holds its board
 the same way. Pass `--auto-next` to roll straight through instead.
 
 Like a real machine, **each reel is weighted differently**: the `7` is generous on
 the first reel and scarce on the last, so you'll line up two and watch the final
-reel come *so close* — the near-miss is by design, not bad luck.
+reel come *so close*. The near-miss is by design, not bad luck.
 
 The eight faces: `7` (the one you're chasing), `BAR`, cherry, bell, plum, orange,
 grape, and diamond.
@@ -103,7 +103,7 @@ grape, and diamond.
 
 ## Terminal too small?
 
-The reels need room to scroll — `(cell_width + 2) × columns` columns and a matching
+The reels need room to scroll: `(cell_width + 2) × columns` columns and a matching
 number of rows. If your terminal is too small for that, `slotmachine` tells you the
 size it needs and exits (code `1`) instead of cramming a torn animation into the
 window. Make it bigger and run it again. (A piped or non-interactive run has no
