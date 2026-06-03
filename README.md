@@ -12,12 +12,13 @@ A terminal slot machine with real slot-machine odds. Spin a row of reels — or 
 ║ ██   ║║ ██   ║║ ██   ║
 ║ ██   ║║ ██   ║║ ██   ║
 ╚══════╝╚══════╝╚══════╝
-  0 0 0  — 🎰 JACKPOT! 🎰
+🎰 JACKPOT! 🎰
 ```
 
-Every reel spins in parallel and lands on a face. Line them all up to win; line up
-the `7`s for the jackpot. The odds are real — by default a `7` lands on a reel one
-time in ten, so a 3-reel jackpot is 1 in 1,000.
+Every reel scrolls its faces vertically — like a real machine — and lands on a
+face. Line them all up to win; line up the `7`s for the jackpot. The odds are
+real — by default a `7` lands on a reel one time in ten, so a 3-reel jackpot is
+1 in 1,000.
 
 ## Install
 
