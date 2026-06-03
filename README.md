@@ -82,9 +82,9 @@ instead? `-n N` gives you N reels (1–10) that pay when they all match.
 left to right — and it locks onto **whatever face is flying past at that exact
 instant**. That's the skill stop. That's the whole game.
 
-Playing a run with `--games`? After each game settles you press once more to deal
-the next one (so you can savour the board) — or pass `--auto-next` to roll straight
-through.
+Playing a run with `--games`? A win **keeps flashing** until you press Enter or
+Space for the next game — so you can savour the hit — and a miss holds its board
+the same way. Pass `--auto-next` to roll straight through instead.
 
 Like a real machine, **each reel is weighted differently**: the `7` is generous on
 the first reel and scarce on the last, so you'll line up two and watch the final

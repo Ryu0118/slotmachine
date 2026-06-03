@@ -144,30 +144,36 @@ struct SlotMachineCommand: AsyncParsableCommand {
 
     /// Animates one game: you skill-stop each column by hand (land on the showing face) via
     /// `spinGridSkill`. Opens this game's accepting window on the dispatcher so its keys advance
-    /// this game's gate; keys pressed during the previous game's finale were already dropped. In
-    /// a multi-game session it prints no per-game line and redraws the next game over this one.
+    /// this game's gate. When another game follows (and not `--auto-next`), the finale **holds**
+    /// — a win keeps flashing — until one more Enter/Space, then the next game redraws over this.
     private func animateGame(game: Int, context: SpinContext, dispatcher: KeyDispatcher) async -> GridSpinResult {
         let config = context.config
         let gate = ReelGate()
         await dispatcher.beginGame(gate: gate, reelCount: config.cols)
-        let result = await spinSkill(context: context, gate: gate)
+        let hasNext = games > 1 && game < games - 1 && !autoNext
+        let result = await spinSkill(context: context, gate: gate, hold: hasNext ? holdForNext(dispatcher) : nil)
         guard games > 1, game < games - 1 else { return result }
-        // Between games: unless --auto-next, wait for one Enter/Space before the next game — so
-        // the player sees this settled board first. The wait is a one-key dispatcher window
-        // (reuse of the reel-stop mechanism); the finale already played inside `spinSkill`, and
-        // its keys were dropped, so this needs a fresh, deliberate press.
-        if !autoNext {
-            let advance = ReelGate()
-            await dispatcher.beginGame(gate: advance, reelCount: 1)
-            await advance.awaitTurn(0)
-        }
         // Redraw the next game over this one so the session plays in place instead of scrolling.
         let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
         emit("\u{1B}[\(gridLines)A")
         return result
     }
 
-    private func spinSkill(context: SpinContext, gate: ReelGate) async -> GridSpinResult {
+    /// A finale-hold closure that ends on the next Enter/Space — a one-key dispatcher window
+    /// (the reel-stop mechanism, reused). The win keeps flashing until the player presses on.
+    private func holdForNext(_ dispatcher: KeyDispatcher) -> @Sendable () async -> Void {
+        {
+            let advance = ReelGate()
+            await dispatcher.beginGame(gate: advance, reelCount: 1)
+            await advance.awaitTurn(0)
+        }
+    }
+
+    private func spinSkill(
+        context: SpinContext,
+        gate: ReelGate,
+        hold: (@Sendable () async -> Void)?,
+    ) async -> GridSpinResult {
         let columns = SpinDriver.skillColumns(count: context.config.cols, gate: gate)
         return await SlotMachine.spinGridSkill(
             columns,
@@ -175,6 +181,7 @@ struct SlotMachineCommand: AsyncParsableCommand {
             paylines: context.paylines,
             theme: context.theme,
             plain: false,
+            finaleHold: hold,
         )
     }
 
