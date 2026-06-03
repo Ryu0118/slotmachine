@@ -90,34 +90,12 @@ cp .build/release/slotmachine /usr/local/bin/
 
 </details>
 
-## The hit you came for
-
-Play a run of games and the screen rewards you for it — a stats panel that lights
-up the more you win:
-
-```
-╔══════════════════════════════════╗
-║🎰  S E S S I O N   S T A T S  🎰 ║
-╠══════════════════════════════════╣
-║ Games: 5                         ║
-║ Wins: 3  (60%)                   ║
-║ Win rate ████████░░░░░░ 60%      ║
-║ Jackpots: 3  ★ JACKPOT ★         ║
-║ Jackpot rate ████████░░░░░░ 60%  ║
-║ Best streak: 2 🔥🔥              ║
-║ Total lines: 3                   ║
-╚══════════════════════════════════╝
-```
-
-A rainbow title, a green bar that fills as you win, a gold jackpot rate, a 🔥
-streak counter, a blinking ★ when you hit the big one. Pure dopamine.
-
 ## How to play
 
 ```bash
 slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
 slotmachine -n 7            # a single row of 7 reels — chase 7777777
-slotmachine --games 10      # 10 games back to back, then the stats panel
+slotmachine --games 10      # 10 games back to back, then your session stats
 ```
 
 By default you get the **3×3 board** — it pays along any of its three rows or two
