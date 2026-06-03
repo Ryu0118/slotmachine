@@ -21,6 +21,12 @@ struct SlotMachineCommand: AsyncParsableCommand {
     @Option(name: .customLong("games"), help: "How many games to play in a row; prints session stats at the end.")
     var games = 1
 
+    @Flag(
+        name: .customLong("auto-next"),
+        help: "In a multi-game run, roll straight into the next game instead of waiting for a key.",
+    )
+    var autoNext = false
+
     mutating func run() async throws {
         guard games >= 1 else { throw ValidationError("games must be at least 1 (got \(games))") }
         // Each reel weights the 7 differently (generous first reel, scarce last), so the board
@@ -145,12 +151,19 @@ struct SlotMachineCommand: AsyncParsableCommand {
         let gate = ReelGate()
         await dispatcher.beginGame(gate: gate, reelCount: config.cols)
         let result = await spinSkill(context: context, gate: gate)
-        // A multi-game session prints no per-game line — only the closing stats. Redraw the
-        // next game over this one so the session plays in place instead of scrolling away.
-        if games > 1, game < games - 1 {
-            let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
-            emit("\u{1B}[\(gridLines)A")
+        guard games > 1, game < games - 1 else { return result }
+        // Between games: unless --auto-next, wait for one Enter/Space before the next game — so
+        // the player sees this settled board first. The wait is a one-key dispatcher window
+        // (reuse of the reel-stop mechanism); the finale already played inside `spinSkill`, and
+        // its keys were dropped, so this needs a fresh, deliberate press.
+        if !autoNext {
+            let advance = ReelGate()
+            await dispatcher.beginGame(gate: advance, reelCount: 1)
+            await advance.awaitTurn(0)
         }
+        // Redraw the next game over this one so the session plays in place instead of scrolling.
+        let gridLines = config.requiredHeight(cellHeight: context.theme.cellHeight) - 1
+        emit("\u{1B}[\(gridLines)A")
         return result
     }
 

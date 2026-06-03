@@ -70,16 +70,21 @@ cp .build/release/slotmachine /usr/local/bin/
 ```bash
 slotmachine                 # the 3×3 board — smash ⏎ to stop each reel in turn
 slotmachine -n 7            # a single row of 7 reels — chase 7777777
-slotmachine --games 10      # 10 games back to back, then your session stats
+slotmachine --games 10      # 10 games — press a key between each, then session stats
+slotmachine --games 10 --auto-next   # …or roll straight into each next game
 ```
 
 By default you get the **3×3 board** — it pays along any of its three rows or two
 diagonals. Line up the `7`s on any of those and you win big. Want a single row
 instead? `-n N` gives you N reels (1–10) that pay when they all match.
 
-**You stop the reels yourself.** Hit any key (Enter, Space, …) to slam the next
-reel — left to right — and it locks onto **whatever face is flying past at that
-exact instant**. That's the skill stop. That's the whole game.
+**You stop the reels yourself.** Hit **Enter or Space** to slam the next reel —
+left to right — and it locks onto **whatever face is flying past at that exact
+instant**. That's the skill stop. That's the whole game.
+
+Playing a run with `--games`? After each game settles you press once more to deal
+the next one (so you can savour the board) — or pass `--auto-next` to roll straight
+through.
 
 Like a real machine, **each reel is weighted differently**: the `7` is generous on
 the first reel and scarce on the last, so you'll line up two and watch the final
@@ -94,6 +99,7 @@ grape, and diamond.
 |------|---------|
 | `-n`, `--reels` | Play a single row of N reels, 1–10 (default: the 3×3 board) |
 | `--games` | Play N games in a row, then show session stats (default 1) |
+| `--auto-next` | In a multi-game run, roll into the next game instead of waiting for a key |
 | `--version` | Print the version |
 
 ## Terminal too small?
