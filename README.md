@@ -12,6 +12,10 @@ autoplay. No mercy. Just you, your thumb, and one more pull:
 
 ## Install it. Right now.
 
+Runs on **macOS and Linux** — every [release](https://github.com/Ryu0118/slotmachine/releases)
+ships a macOS universal binary (arm64 + x86_64) and Linux builds for x86_64 and
+arm64 (aarch64). The installer below grabs the one for your platform.
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ryu0118/slotmachine/main/install.sh | bash
 ```
