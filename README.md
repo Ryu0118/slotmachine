@@ -34,7 +34,7 @@ nest install Ryu0118/slotmachine
 #### Mise ([jdx/mise](https://github.com/jdx/mise))
 
 ```bash
-mise use -g ubi:Ryu0118/slotmachine
+mise use -g github:Ryu0118/slotmachine
 ```
 
 #### Build from source
